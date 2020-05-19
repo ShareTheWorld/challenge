@@ -14,8 +14,8 @@ public class Main {
     }
 
     public static void getInputStream() throws Exception {
-        Reader in1 = new FileReader("/Users/fht/Desktop/chellenger/" + trace1);
-        Reader in2 = new FileReader("/Users/fht/Desktop/chellenger/" + trace2);
+        Reader in1 = new FileReader("/home/fu/Desktop/challege/" + trace1);
+        Reader in2 = new FileReader("/home/fu/Desktop/challege/" + trace2);
         LineNumberReader r1 = new LineNumberReader(in1);
         String tmp;
         HashMap<String, List<String>> map = new HashMap<>();

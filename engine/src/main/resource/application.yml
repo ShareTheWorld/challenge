@@ -7,9 +7,7 @@ spring:
 
 #项目端口 根目录设置
 server:
-  port: 8001
-  servlet:
-    context-path: /filter
+  port: 8000
 
 
 
