@@ -1,17 +1,21 @@
 package com.aliyun.filter.service;
 
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 
 public class StreamHandle {
+    public static final int PER_READ_LEN = 256 * 1024;//每次读取长度
     private InputStream in;
+    private List list = new ArrayList(1000);
 
     public static void main(String args[]) throws FileNotFoundException {
         long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 100; i++) {
-            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
+        for (int i = 0; i < 1; i++) {
+            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
         }
         System.out.println(System.currentTimeMillis() - startTime);
 
@@ -34,7 +38,7 @@ public class StreamHandle {
             //保证读取的一页接近1M，
             int len;
             while (true) {
-                len = in.read(page.buffer, page.len, page.buffer.length - page.len);//一次尝试读取1M数据
+                len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len));//一次尝试读取1M数据
                 if (len == -1) break;
                 page.len += len;
                 if (page.len > Page.min) break;
@@ -42,16 +46,20 @@ public class StreamHandle {
 
             Page newPage = new Page();//添加一个新的page
             for (int i = page.len - 1; i >= 0; i--) {
-                if ('\n' == page.buffer[i]) {
+                if ('\n' == page.data[i]) {
                     int l = page.len - i - 1;
-                    System.arraycopy(page.buffer, i + 1, newPage.buffer, 0, l);
+                    System.arraycopy(page.data, i + 1, newPage.data, 0, l);
                     page.len = page.len - l;
                     newPage.len = l;
                     break;
                 }
             }
             //将这一页码
-//            System.out.println("Page " + (++count) + "  " + page.len + "  " + (char) (page.buffer[page.len - 1]));
+//            list.add(page);
+            page.createIndex();
+//            new String(page.data, 0, page.len);
+//            System.out.println();
+//            System.out.println("Page " + (++count) + "  " + page.len + "  " + (char) (page.data[page.len - 1]));
             totalCount += page.len;
             page = newPage;
             //寻找换行符
@@ -66,11 +74,4 @@ public class StreamHandle {
 
         return null;
     }
-}
-
-class Page {
-    public byte[] buffer = new byte[1 * 256 * 1024];//用于存放数据
-    public static int min = 1 * 256 * 1024 - 4028;//要求读数据的最小长度
-    public int len;//用于存放数据的长度
-    //下面是建立索引的字段
 }
