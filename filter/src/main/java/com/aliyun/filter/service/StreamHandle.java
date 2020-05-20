@@ -9,15 +9,18 @@ public class StreamHandle {
     private InputStream in;
 
     public static void main(String args[]) throws FileNotFoundException {
-        new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
+        long startTime = System.currentTimeMillis();
+        for (int i = 0; i < 100; i++) {
+            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
+        }
+        System.out.println(System.currentTimeMillis() - startTime);
+
     }
 
     public StreamHandle(InputStream in) {
         this.in = in;
         try {
-            long startTime = System.currentTimeMillis();
             this.start();
-            System.out.println(System.currentTimeMillis() - startTime);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -66,8 +69,8 @@ public class StreamHandle {
 }
 
 class Page {
-    public byte[] buffer = new byte[1024 * 1024];//用于存放数据
-    public static int min = 1022 * 1024;//要求读数据的最小长度
+    public byte[] buffer = new byte[1 * 256 * 1024];//用于存放数据
+    public static int min = 1 * 256 * 1024 - 4028;//要求读数据的最小长度
     public int len;//用于存放数据的长度
     //下面是建立索引的字段
 }
