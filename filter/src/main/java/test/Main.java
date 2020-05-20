@@ -14,8 +14,11 @@ public class Main {
     }
 
     public static void getInputStream() throws Exception {
-        Reader in1 = new FileReader("/home/fu/Desktop/challege/" + trace1);
-        Reader in2 = new FileReader("/home/fu/Desktop/challege/" + trace2);
+        long startTime = System.currentTimeMillis();
+        String path = "/Users/fht/d_disk/chellenger/data/";
+//        String path = "/home/fu/Desktop/challege/";
+        Reader in1 = new FileReader(path + trace1);
+        Reader in2 = new FileReader(path + trace2);
         LineNumberReader r1 = new LineNumberReader(in1);
         String tmp;
         HashMap<String, List<String>> map = new HashMap<>();
@@ -61,9 +64,10 @@ public class Main {
 
             if (isPrint) {
                 count++;
-                System.out.println(count + "\n" + t + "\n\n\n");
+//                System.out.println(count + "\n" + t + "\n\n\n");
             }
         }
+        System.out.println("time=" + (System.currentTimeMillis() - startTime));
 
     }
 
