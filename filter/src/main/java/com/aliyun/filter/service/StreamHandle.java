@@ -14,8 +14,9 @@ public class StreamHandle {
 
     public static void main(String args[]) throws FileNotFoundException {
         long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 1; i++) {
-            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
+        for (int i = 0; i < 40; i++) {
+//            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
+            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
         }
         System.out.println(System.currentTimeMillis() - startTime);
 
