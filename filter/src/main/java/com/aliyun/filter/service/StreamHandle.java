@@ -15,10 +15,13 @@ public class StreamHandle {
     public static void main(String args[]) throws FileNotFoundException {
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < 1; i++) {
-            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
-//            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
+//            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
+            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
+            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace2.data"));
         }
         System.out.println(System.currentTimeMillis() - startTime);
+        System.out.println("countErrorSet=" + Page.countErrorSet.size());
+
 
     }
 
@@ -32,15 +35,12 @@ public class StreamHandle {
     }
 
     private void start() throws Exception {
-        int count = 0;
         Page page = new Page();
         int totalCount = 0;
         while (true) {
             //保证读取的一页接近1M，
             int len;
-            while (true) {
-                len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len));//一次尝试读取1M数据
-                if (len == -1) break;
+            while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
                 page.len += len;
                 if (page.len > Page.min) break;
             }
@@ -57,8 +57,10 @@ public class StreamHandle {
             }
             //将这一页码
 //            list.add(page);
+//            new Thread(() -> {
             page.createIndex();
-//            new String(page.data, 0, page.len);
+//            }).start();
+//            System.out.println(new String(page.data, 0, page.len));
 //            System.out.println();
 //            System.out.println("Page " + (++count) + "  " + page.len + "  " + (char) (page.data[page.len - 1]));
             totalCount += page.len;
@@ -66,7 +68,7 @@ public class StreamHandle {
             //寻找换行符
             if (len == -1) break;
         }
-        System.out.println(totalCount);
+        System.out.println("totalCount=" + totalCount);
 
 
     }

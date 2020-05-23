@@ -15,6 +15,11 @@ public class Main {
 
     public static void getInputStream() throws Exception {
         long startTime = System.currentTimeMillis();
+        for (long i = 0; i < 130000000l; i++) {
+
+        }
+        System.out.println("time=" + (System.currentTimeMillis() - startTime));
+        if (true) return;
         String path = "/Users/fht/d_disk/chellenger/data/";
 //        String path = "/home/fu/Desktop/challege/";
         Reader in1 = new FileReader(path + trace1);
