@@ -1,59 +1,54 @@
 package com.aliyun.filter.service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 class Page {
+    private static final int SKIP_LEN = 128;//跳过长度
     public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
     public static int min = 32 * 1024 * 1024 - 4028;//要求读数据的最小长度
     public int len;//用于存放数据的长度
     public int indexLen = 3;//索引使用字符的长度
     public List<Log>[] bucket = new List[0X10000];
-    private static final int SKIP_LEN = 235;//跳过长度
+    public static Set<Log> errSet = new HashSet<>();
 
 
     private static int count[] = new int[256];
     private static int testErrorCount = 0;
-    private static int testTotalCount = 0;
     public static Set<String> countErrorSet = new HashSet<>();
+    public static int logMinLength = 2000;//日志最小长度
 
     //下面是建立索引的字段
     public void createIndex() {
         int i = 0;
         do {
-            int index = getIndex(data, i);
+            int index = hash(data, i);
             if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
-            Log log = get(data, i, len);
+            Log log = getLog(data, i, len);
             bucket[index].add(log);
             i += log.len;
-        } while (i < len);
-        testTotalCount += len;
-//        System.out.println("testErrorCount=" + testErrorCount);
-//        System.out.println("countErrorSet=" + countErrorSet.size());
-//        System.out.println("testTotalCount=" + testTotalCount);
-//        if (len < 10 * 1024 * 1024) {
-//            for (int j = 0; j < count.length; j++) {
-//                System.out.println(((char) j) + "=" + count[j]);
-//            }
-//        }
+        } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
     }
 
 
-    private static int getIndex(byte data[], int j) {
-        int index1 = (data[j] << 12) + (data[++j] << 8) + (data[++j] << 4) + (data[++j]);
-        int index2 = (data[++j] << 12) + (data[++j] << 8) + (data[++j] << 4) + (data[++j]);
-        return (index1 ^ index2) & 0xFFFF;
+    private int hash(byte data[], int s) {
+        try {
+            int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
+            int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
+            return (index1 ^ index2) & 0xFFFF;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
 
-    public static Log get(byte[] data, int s, int len) {
+    public Log getLog(byte[] data, int s, int len) {
         int i = s + SKIP_LEN - 1;
         //开始寻早error=1和!http.status_code=200 和\n
         boolean isError = false;
-        while (i < len) {
-          /* ======================================判断一=============================================
+        while (true) {
+            /* ==========、判断一 跳过指定位置开始寻找错误和换行符===========*/
+            /*
             //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
             if (data[++i] == '=') {
 //                count[data[i + 2]]++;
@@ -72,45 +67,54 @@ class Page {
                 break;
             }
            */
+
+            /* ==========、判断二 假设错误出现在最后一个位置===========*/
             if (data[++i] == '\n') {
                 if (data[i - 9] == '_' &&
-//                        data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
-//                        data[i - 16] == '.' && data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
-//                        data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
-//                        data[i - 8] == 'c' && data[i - 7] == 'o' && data[i - 6] == 'd' && data[i - 5] == 'e' &&
-                        data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')
-                ) {
+                        data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
+                        data[i - 16] == '.' && data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
+                        data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
+                        data[i - 8] == 'c' && data[i - 7] == 'o' && data[i - 6] == 'd' && data[i - 5] == 'e' &&
+                        data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')) {
                     isError = true;
-                } else if (
-//                        data[i - 7] == 'e' && data[i - 6] == 'r' && data[i - 5] == 'r'&&
-//                                 data[i - 4] == 'o'&&
-                                data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
+                } else if (data[i - 7] == 'e' && data[i - 6] == 'r' &&
+                        data[i - 5] == 'r' && data[i - 4] == 'o' &&
+                        data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
                     isError = true;
                 }
                 break;
             }
         }
-        if (isError) {
-            ++testErrorCount;
-            countErrorSet.add(new String(data, s, 15));
-//            System.out.println(testErrorCount + "  " + new String(data, s, i - s + 1));
+        if (i - s + 1 < logMinLength) logMinLength = i - s + 1;
+        Log log = new Log(s, i - s + 1, isError);
+        if (isError) errSet.add(log);
+        return log;
+    }
+
+    public List<byte[]> selectByTraceId(byte traceId[]) {
+        int index = hash(traceId, 0);
+        List<Log> list = bucket[index];
+        List<byte[]> results = new ArrayList<>(list.size());
+        if (list == null) return results;
+        for (int i = 0; i < list.size(); i++) {
+            Log log = list.get(i);
+            boolean bool = startsWith(this.data, log.start, traceId);
+            if (!bool) continue;
+            byte[] bs = new byte[log.len];
+            System.arraycopy(this.data, log.start, bs, 0, log.len);
+            results.add(bs);
         }
-        return new Log(isError, s, i - s + 1);
+        return results;
     }
 
-    public List selectByTraceId() {
-        return null;
+    /**
+     * 从data的s位置开始，判断data是否包含key
+     */
+    private static boolean startsWith(byte data[], int s, byte key[]) {
+        for (int i = 0; i < key.length; i++) {
+            if (data[s + i] != key[i]) return false;
+        }
+        return true;
     }
-}
 
-class Log {
-    boolean isError;
-    int start;
-    int len;
-
-    public Log(boolean isError, int start, int len) {
-        this.isError = isError;
-        this.start = start;
-        this.len = len;
-    }
 }

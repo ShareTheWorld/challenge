@@ -2,8 +2,10 @@ package com.aliyun.filter.service;
 
 
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.Proxy;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,15 +14,44 @@ public class StreamHandle {
     private InputStream in;
     private List list = new ArrayList(1000);
 
-    public static void main(String args[]) throws FileNotFoundException {
+    public static void main(String args[]) throws Exception {
         long startTime = System.currentTimeMillis();
-        for (int i = 0; i < 1; i++) {
 //            new StreamHandle(new FileInputStream("/home/fu/Desktop/challege/" + "trace1.data"));
-            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace1.data"));
-            new StreamHandle(new FileInputStream("/Users/fht/d_disk/chellenger/data/" + "trace2.data"));
+//            URL url1 = new URL("http://127.0.0.1:8000/trace1.data");
+//            HttpURLConnection httpConnection1 = (HttpURLConnection) url1.openConnection(Proxy.NO_PROXY);
+//            InputStream input1 = httpConnection1.getInputStream();
+//            new StreamHandle(input1);
+//
+//            URL url2 = new URL("http://127.0.0.1:8000/trace2.data");
+//            HttpURLConnection httpConnection2 = (HttpURLConnection) url2.openConnection(Proxy.NO_PROXY);
+//            InputStream input2 = httpConnection2.getInputStream();
+//            new StreamHandle(input2);
+
+//            String path = "/root/chellenge/";
+        String path = "/Users/fht/d_disk/chellenger/data2/";
+        Thread t1 = new Thread(() -> {
+            try {
+                new StreamHandle(new FileInputStream(path + "trace1.data"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t1.start();
+
+        Thread t2 = new Thread(() -> {
+            try {
+                new StreamHandle(new FileInputStream(path + "trace2.data"));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+        t2.start();
+        while (t1.isAlive() || t2.isAlive()) {
+            Thread.sleep(10);
         }
-        System.out.println(System.currentTimeMillis() - startTime);
-        System.out.println("countErrorSet=" + Page.countErrorSet.size());
+        System.out.println("total time=" + (System.currentTimeMillis() - startTime));
+        System.out.println("errSet.size()=" + Page.errSet.size());
+        System.out.println("logMinLength=" + Page.logMinLength);
 
 
     }
@@ -36,7 +67,7 @@ public class StreamHandle {
 
     private void start() throws Exception {
         Page page = new Page();
-        int totalCount = 0;
+        long totalCount = 0;
         while (true) {
             //保证读取的一页接近1M，
             int len;
@@ -57,9 +88,10 @@ public class StreamHandle {
             }
             //将这一页码
 //            list.add(page);
-//            new Thread(() -> {
-            page.createIndex();
-//            }).start();
+            Page t_page = page;
+            new Thread(()->{
+                t_page.createIndex();
+            }).start();
 //            System.out.println(new String(page.data, 0, page.len));
 //            System.out.println();
 //            System.out.println("Page " + (++count) + "  " + page.len + "  " + (char) (page.data[page.len - 1]));
