@@ -7,7 +7,6 @@ class Page {
     public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
     public static int min = 32 * 1024 * 1024 - 4028;//要求读数据的最小长度
     public int len;//用于存放数据的长度
-    public int indexLen = 3;//索引使用字符的长度
     public List<Log>[] bucket = new List[0X10000];
     public static Set<Log> errSet = new HashSet<>();
 
@@ -31,14 +30,9 @@ class Page {
 
 
     private int hash(byte data[], int s) {
-        try {
-            int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
-            int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
-            return (index1 ^ index2) & 0xFFFF;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return 0;
+        int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
+        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
+        return (index1 ^ index2) & 0xFFFF;
     }
 
 
