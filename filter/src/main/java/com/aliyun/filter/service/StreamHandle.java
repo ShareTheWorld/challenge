@@ -28,30 +28,13 @@ public class StreamHandle {
 //            new StreamHandle(input2);
 
 //            String path = "/root/chellenge/";
-        String path = "/Users/fht/d_disk/chellenger/data2/";
-        Thread t1 = new Thread(() -> {
-            try {
-                new StreamHandle(new FileInputStream(path + "trace1.data"));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        t1.start();
-
-        Thread t2 = new Thread(() -> {
-            try {
-                new StreamHandle(new FileInputStream(path + "trace2.data"));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-        t2.start();
-        while (t1.isAlive() || t2.isAlive()) {
-            Thread.sleep(10);
-        }
+        String path = "/Users/fht/d_disk/chellenger/data/";
+        new StreamHandle(new FileInputStream(path + "trace1.data"));
+        new StreamHandle(new FileInputStream(path + "trace2.data"));
         System.out.println("total time=" + (System.currentTimeMillis() - startTime));
         System.out.println("errSet.size()=" + Page.errSet.size());
         System.out.println("logMinLength=" + Page.logMinLength);
+        System.out.println("testLineNumber=" + Page.testLineNumber);
 
 
     }
@@ -89,9 +72,9 @@ public class StreamHandle {
             //将这一页码
 //            list.add(page);
             Page t_page = page;
-            new Thread(()->{
-                t_page.createIndex();
-            }).start();
+//            new Thread(() -> {
+            t_page.createIndex();
+//            }).start();
 //            System.out.println(new String(page.data, 0, page.len));
 //            System.out.println();
 //            System.out.println("Page " + (++count) + "  " + page.len + "  " + (char) (page.data[page.len - 1]));

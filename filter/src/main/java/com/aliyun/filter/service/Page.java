@@ -13,6 +13,7 @@ class Page {
 
     private static int count[] = new int[256];
     private static int testErrorCount = 0;
+    public static int testLineNumber = 0;
     public static Set<String> countErrorSet = new HashSet<>();
     public static int logMinLength = 2000;//日志最小长度
 
@@ -25,6 +26,7 @@ class Page {
             Log log = getLog(data, i, len);
             bucket[index].add(log);
             i += log.len;
+            testLineNumber++;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
     }
 
