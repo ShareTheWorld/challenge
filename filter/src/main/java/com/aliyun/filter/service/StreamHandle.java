@@ -28,7 +28,8 @@ public class StreamHandle {
 //            new StreamHandle(input2);
 
 //            String path = "/root/chellenge/";
-        String path = "/Users/fht/d_disk/chellenger/data/";
+//        String path = "/Users/fht/d_disk/chellenger/data/";
+        String path = "/home/fu/Desktop/challege/";
         new StreamHandle(new FileInputStream(path + "trace1.data"));
         new StreamHandle(new FileInputStream(path + "trace2.data"));
         System.out.println("total time=" + (System.currentTimeMillis() - startTime));

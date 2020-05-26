@@ -1,14 +1,33 @@
 package com.aliyun.filter.controller;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.aliyun.filter.service.FilterService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.InputStream;
 
 @RestController
-@RequestMapping("filter")
+@RequestMapping()
 public class FilterController {
-    @GetMapping("test")
-    public String test() {
-        return "test";
+    @Autowired
+    private FilterService filterService;
+
+    @RequestMapping("/ready")
+    public String ready() {
+        return "suc";
+    }
+
+    @RequestMapping("/setParameter")
+    public String setParameter(Integer port) {
+        return "suc";
+    }
+
+    @RequestMapping("/query")
+    public void query(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        long time=System.currentTimeMillis();
+        filterService.query(request, response);
+        System.out.println(System.currentTimeMillis()-time);
     }
 }
