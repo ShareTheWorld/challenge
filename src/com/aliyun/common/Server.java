@@ -1,9 +1,9 @@
 package com.aliyun.common;
 
+import com.aliyun.Main;
+
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 
@@ -17,57 +17,50 @@ public abstract class Server {
     public void run() throws Exception {
         System.out.println("start tcp listener port " + listenPort);
         ServerSocket server = new ServerSocket(listenPort);
-        boolean goOn = true;
-        while (goOn) {
+        while (true) {
             Socket socket = server.accept();
-            InputStream in = socket.getInputStream();
-            OutputStream out = socket.getOutputStream();
-            byte bs[] = new byte[1024];
-            int len = in.read(bs);
-            if (len > 0) {
-                String req = new String(bs, 0, len);
-                if (req.contains("ready")) {
-                    out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
-                }
-                if (req.contains("setParameter")) {
-                    int s = req.indexOf('=');
-                    int e = req.indexOf(' ', s);
-                    int port = Integer.valueOf(req.substring(s + 1, e));
-                    setListenPort(port);
-                    out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
-                    goOn = false;
-                }
+            int port = socket.getPort();
+            if (port == Main.FILTER_0_PORT || port == Main.FILTER_1_PORT) {
+                handleTcpSocket(socket, port);
+            } else {
+                handleHttpSocket(socket);
             }
-            in.close();
-            out.close();
-            socket.close();
-        }
-        server.close();
 
-        goOn();
+        }
+
 
     }
 
-    private void goOn() {
-        try {
-            System.out.println("start udp listener port " + (listenPort));
-            DatagramSocket socket = new DatagramSocket(listenPort);
-            socket.setReceiveBufferSize(32 * 1204 * 1024);
-            while (true) {
-                Packet packet = new Packet(32);
-                DatagramPacket datagramPacket = packet.getDatagramPacketForWrite();
-                socket.receive(datagramPacket);                                    //接货,接收数据
-                packet.len = datagramPacket.getLength();
-                handlePacket(packet);
+    private void handleHttpSocket(Socket socket) throws Exception {
+        InputStream in = socket.getInputStream();
+        OutputStream out = socket.getOutputStream();
+        byte bs[] = new byte[1024];
+        int len = in.read(bs);
+        if (len > 0) {
+            String req = new String(bs, 0, len);
+            if (req.contains("ready")) {
+                out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (req.contains("setParameter")) {
+                int s = req.indexOf('=');
+                int e = req.indexOf(' ', s);
+                int port = Integer.valueOf(req.substring(s + 1, e));
+                setDataPort(port);
+                out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
+            }
         }
+        in.close();
+        out.close();
+        socket.close();
     }
 
-    protected abstract void handlePacket(Packet packet) throws Exception;
 
-    protected abstract void setListenPort(int listenPort);
+
+
+    public abstract void handleTcpSocket(Socket socket, int port) throws Exception;
+
+
+    protected abstract void setDataPort(int dataPort);
 
 
 }

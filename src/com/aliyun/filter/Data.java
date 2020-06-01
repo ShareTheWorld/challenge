@@ -120,9 +120,11 @@ public class Data implements Runnable {
      */
     public void handleErrorTraceId() {
         //处理本地错误traceId
-        for (int i = 2; i < localError.len; i += 16) {
+        byte[] bs = localError.getBs();
+        int len = localError.getLen();
+        for (int i = Packet.P_DATA; i < localError.getLen(); i += 16) {
             byte traceId[] = new byte[16];
-            System.arraycopy(localError.bs, i, traceId, 0, 16);
+            System.arraycopy(bs, i, traceId, 0, 16);
             Packet packet = selectByTraceId(traceId);
 //            System.out.println(packet);
             Filter.getFilter().sendPacket(packet);

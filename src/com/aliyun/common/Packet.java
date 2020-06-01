@@ -14,20 +14,43 @@ public class Packet {
     public static final byte WHO_FILTER_0 = 0;//8000
     public static final byte WHO_FILTER_1 = 1;//8001
     public static final byte WHO_ENGINE_2 = 2;//8002
-    public byte bs[];//[who,type,data]
-    public int len;
+
+    public static final int P_LEN = 0;
+    public static final int P_WHO = 3;
+    public static final int P_TYPE = 4;
+    public static final int P_DATA = 5;
+    private byte bs[];//[len0,len1,len2,who,type,data] data=len data len data
+    private int len = 5;//代表bs的使用长度
 
     public Packet(int k) {
         bs = new byte[k * 1024];
-        len = 0;
     }
-    
+
 
     public Packet(int k, byte who, byte type) {
         bs = new byte[k * 1024];
         this.bs[0] = who;
         this.bs[1] = type;
-        this.len = 2;
+    }
+
+    public int getLen() {
+        return (bs[P_LEN] & 0XFF) << 16 + (bs[P_LEN + 1] & 0XFF) << 8 + bs[P_LEN + 2] & 0XFF;
+    }
+
+    public int getWho() {
+        return bs[P_WHO];
+    }
+
+    public int getType() {
+        return bs[P_TYPE];
+    }
+
+    public byte[] getBs() {
+        //将长度写入到对应的位置
+        bs[P_LEN + 0] = (byte) ((len >> 16) & 0XFF);
+        bs[P_LEN + 1] = (byte) ((len >> 8) & 0XFF);
+        bs[P_LEN + 2] = (byte) (len & 0XFF);
+        return bs;
     }
 
     public Packet write(byte bs[], int start, int len) {
@@ -43,22 +66,15 @@ public class Packet {
      * @return
      */
     public Packet write(int len) {
-        bs[this.len++] = (byte) (len & 0XFF);
         bs[this.len++] = (byte) ((len >> 8) & 0XFF);
+        bs[this.len++] = (byte) (len & 0XFF);
         return this;
     }
 
-    public DatagramPacket getDatagramPacketForWrite() {
-        return new DatagramPacket(bs, bs.length);//创建Packet相当于创建集装箱
-    }
-
-    public DatagramPacket getDatagramPacketForRead(InetAddress address, int port) {
-        return new DatagramPacket(bs, len, address, port);//创建Packet相当于创建集装箱
-    }
 
     @Override
     public String toString() {
-        int who = 8000 + bs[0];
+        int who = 8000 + bs[P_WHO];
 
         String type = "start";
         switch (bs[1]) {
@@ -81,11 +97,12 @@ public class Packet {
                 type = "end";
                 break;
         }
-        if (bs[1] == TYPE_MULTI_LOG) {
-            StringBuilder sb = new StringBuilder("who:" + who + ", type:" + type + ", len=" + (len - 2) + ", data=\n");
-            for (int i = 2; i < this.len; ) {
-                int l = (bs[i] & 0XFF) + ((bs[i + 1] & 0XFF) << 8);
-                sb.append(l + " " + new String(bs, i + 2, l));
+        if (bs[P_TYPE] == TYPE_MULTI_LOG) {
+
+            StringBuilder sb = new StringBuilder("total len:" + len + ", who:" + who + ", type:" + type + ", data len=" + (len - P_DATA) + ", data=\n");
+            for (int i = P_DATA; i < this.len; ) {
+                int l = (bs[i] & 0XFF) << 8 + (bs[i + 1] & 0XFF);
+                sb.append(l + " " + new String(bs, i + 2, l));//2表示使用了两个字节表示长度
                 i = i + 2 + l;
             }
             return sb.toString();

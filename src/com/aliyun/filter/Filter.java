@@ -34,28 +34,28 @@ public class Filter extends Server {
         }
     }
 
-
     @Override
-    protected void setListenPort(int listenPort) {
-        this.dataPort = listenPort;
+    public void handleTcpSocket(Socket socket, int port) throws Exception {
+
     }
 
-    @Override
-    protected void handlePacket(Packet packet) {
-        if (packet.bs[1] == Packet.TYPE_START) {
-            Data.getData().start(dataPort);
-        }
-        System.out.println("receive " + packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
 
+    @Override
+    protected void setDataPort(int dataPort) {
+        this.dataPort = dataPort;
     }
+
+//    @Override
+//    protected void handlePacket(Packet packet) {
+//        if (packet.bs[1] == Packet.TYPE_START) {
+//            Data.getData().start(dataPort);
+//        }
+//        System.out.println("receive " + packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
+//
+//    }
 
     public void sendPacket(Packet packet) {
-        try {
-            socket.send(packet.getDatagramPacketForRead(address, 8002));
-//            System.out.println("send  " + packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
     }
 
 

@@ -8,6 +8,9 @@ import com.aliyun.filter.Filter;
 import java.util.Arrays;
 
 public class Main {
+    public static final int FILTER_0_PORT = 8000;
+    public static final int FILTER_1_PORT = 8001;
+    public static final int ENGINE_PORT = 8002;
     public static int listenPort;
     public static byte who = Packet.WHO_FILTER_0;
 

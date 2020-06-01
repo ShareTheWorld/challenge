@@ -5,8 +5,11 @@ import com.aliyun.Main;
 import com.aliyun.common.Packet;
 import com.aliyun.common.Server;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,42 +38,42 @@ public class Engine extends Server {
         }
     }
 
+    private OutputStream out0;
+    private OutputStream out1;
 
     @Override
-    protected void setListenPort(int listenPort) {
-        System.out.println("engine get port is " + listenPort);
-        resultReportPort = listenPort;
+    public void handleTcpSocket(Socket socket, int port) throws Exception {
+        if (port == Main.FILTER_0_PORT) {
+            out0 = socket.getOutputStream();
+        } else if (port == Main.FILTER_1_PORT) {
+            out1 = socket.getOutputStream();
+        }
+        InputStream in = socket.getInputStream();
+        new Thread(() -> {
+            handleInputStream(in);
+        }).start();
+    }
+
+    protected void handleInputStream(InputStream in) {
+        while (true) {
+
+        }
+
+    }
+
+
+    @Override
+    protected void setDataPort(int dataPort) {
+        System.out.println("engine get port is " + dataPort);
+        resultReportPort = dataPort;
         Packet packet = new Packet(1, Main.who, Packet.TYPE_START);
         sendPacket(packet, 8000);
         sendPacket(packet, 8001);
     }
 
     public void sendPacket(Packet packet, int port) {
-        try {
-            socket.send(packet.getDatagramPacketForRead(address, port));
-//            System.out.println("send  " + packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
     }
-
-
-    private int n = 0;
-
-    @Override
-    protected void handlePacket(Packet packet) throws Exception {
-        if (packet.bs[1] == Packet.TYPE_MULTI_TRACE_ID) {
-            System.out.println(packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
-
-            if (packet.bs[0] == Packet.WHO_FILTER_0) {
-                socket.send(packet.getDatagramPacketForRead(address, 8001));
-            } else if (packet.bs[0] == Packet.WHO_FILTER_1) {
-                socket.send(packet.getDatagramPacketForRead(address, 8000));
-            }
-        } else if (packet.bs[1] == Packet.TYPE_MULTI_LOG) {
-            System.out.println("n=" + (++n));
-            System.out.print(packet);
-        }
-    }
+    
 
 }
