@@ -7,6 +7,8 @@ import com.aliyun.common.Server;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 服务器，监听8002端口，
@@ -20,6 +22,8 @@ public class Engine extends Server {
     private int resultReportPort;//结果上报端口
     private DatagramSocket socket;
     private InetAddress address;
+
+    private List<Packet> list = new ArrayList<>(100);
 
     public Engine(int port) {
         super(port);

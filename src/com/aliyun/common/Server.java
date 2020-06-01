@@ -14,7 +14,6 @@ public abstract class Server {
         this.listenPort = listenPort;
     }
 
-
     public void run() throws Exception {
         System.out.println("start tcp listener port " + listenPort);
         ServerSocket server = new ServerSocket(listenPort);
@@ -53,9 +52,10 @@ public abstract class Server {
         try {
             System.out.println("start udp listener port " + (listenPort));
             DatagramSocket socket = new DatagramSocket(listenPort);
-            Packet packet = new Packet(32);
-            DatagramPacket datagramPacket = packet.getDatagramPacketForWrite();
+            socket.setReceiveBufferSize(32 * 1204 * 1024);
             while (true) {
+                Packet packet = new Packet(32);
+                DatagramPacket datagramPacket = packet.getDatagramPacketForWrite();
                 socket.receive(datagramPacket);                                    //接货,接收数据
                 packet.len = datagramPacket.getLength();
                 handlePacket(packet);
