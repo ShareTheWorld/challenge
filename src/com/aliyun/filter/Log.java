@@ -1,6 +1,8 @@
-package com.aliyun.filter.service;
+package com.aliyun.filter;
 
-
+/**
+ * 表示一条log日志
+ */
 class Log {
     boolean isError;
     int start;

@@ -1,15 +1,16 @@
-package com.aliyun.filter.service;
+package com.aliyun.filter;
+
+import com.aliyun.Main;
+import com.aliyun.common.Packet;
 
 import java.util.*;
 
 class Page {
     private static final int SKIP_LEN = 128;//跳过长度
     public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
-    public static int min = 32 * 1024 * 1024 - 4028;//要求读数据的最小长度
+    public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
     public int len;//用于存放数据的长度
     public List<Log>[] bucket = new List[0X10000];
-    public static Set<Log> errSet = new HashSet<>();
-
 
     private static int count[] = new int[256];
     private static int testErrorCount = 0;
@@ -22,7 +23,11 @@ class Page {
         int i = 0;
         do {
             int index = hash(data, i);
-            if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
+            try {
+                if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
             Log log = getLog(data, i, len);
             bucket[index].add(log);
             i += log.len;
@@ -32,8 +37,8 @@ class Page {
 
 
     private int hash(byte data[], int s) {
-        int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
-        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);
+        int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
         return (index1 ^ index2) & 0xFFFF;
     }
 
@@ -83,15 +88,16 @@ class Page {
         }
         if (i - s + 1 < logMinLength) logMinLength = i - s + 1;
         Log log = new Log(s, i - s + 1, isError);
-        if (isError) errSet.add(log);
+        if (isError) Data.localError.write(data, s, 16);
         return log;
     }
 
     public List<byte[]> selectByTraceId(byte traceId[]) {
         int index = hash(traceId, 0);
         List<Log> list = bucket[index];
+        if (list == null) return new ArrayList<>();
         List<byte[]> results = new ArrayList<>(list.size());
-        if (list == null) return results;
+
         for (int i = 0; i < list.size(); i++) {
             Log log = list.get(i);
             boolean bool = startsWith(this.data, log.start, traceId);
@@ -111,6 +117,11 @@ class Page {
             if (data[s + i] != key[i]) return false;
         }
         return true;
+    }
+
+    public void clear() {
+        len = 0;
+        bucket = new List[0X10000];
     }
 
 }
