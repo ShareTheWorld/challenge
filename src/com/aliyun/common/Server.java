@@ -18,7 +18,7 @@ public abstract class Server {
     public void run() throws Exception {
         System.out.println("start tcp listener port " + listenPort);
         server = new ServerSocket(listenPort);
-        while (true) {
+        while (!server.isClosed()) {
             Socket socket = server.accept();
             int port = socket.getPort();
             if (port == Main.FILTER_0_PORT || port == Main.FILTER_1_PORT) {
@@ -27,6 +27,7 @@ public abstract class Server {
                 handleHttpSocket(socket);
             }
         }
+        System.out.println("stop tcp listener port " + listenPort);
     }
 
     private void handleHttpSocket(Socket socket) throws Exception {
@@ -51,10 +52,7 @@ public abstract class Server {
         out.close();
         socket.close();
     }
-
-    public abstract void startFinish();
-
-
+    
     public abstract void handleTcpSocket(Socket socket, int port) throws Exception;
 
     public void handleInputStream(InputStream in) {

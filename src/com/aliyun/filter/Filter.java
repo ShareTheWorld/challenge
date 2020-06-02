@@ -5,9 +5,10 @@ import com.aliyun.Main;
 import com.aliyun.common.Packet;
 import com.aliyun.common.Server;
 
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.*;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
 
 /**
  * 服务器，监听8000/80001端口，
@@ -30,28 +31,35 @@ public class Filter extends Server {
     public Filter(int port) throws UnknownHostException {
         super(port);
         filter = this;
+        this.startClient();
     }
 
-    @Override
-    public void startFinish() {
-        try {
-            server.close();
-            InetSocketAddress addr = new InetSocketAddress("127.0.0.1", Main.listenPort);
-            socket = new Socket();
-            socket.setReuseAddress(true);//端口复用
-            socket.bind(addr);//绑定到本定的某个端口上，
-            socket.connect(new InetSocketAddress("127.0.0.1", Main.ENGINE_PORT));
-            handleInputStream(socket.getInputStream());
-            out = socket.getOutputStream();
-        } catch (Exception e) {
-            e.printStackTrace();
+
+    public void startClient() {
+        while (out == null) {
+            try {
+                InetSocketAddress addr = new InetSocketAddress("127.0.0.1", Main.listenPort);
+                socket = new Socket();
+                socket.setReuseAddress(true);//端口复用
+                socket.bind(addr);//绑定到本定的某个端口上，
+                socket.connect(new InetSocketAddress("127.0.0.1", Main.ENGINE_PORT));
+                handleInputStream(socket.getInputStream());
+                out = socket.getOutputStream();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            try {
+                Thread.sleep(1000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
 
     @Override
     public void handleTcpSocket(Socket socket, int port) throws Exception {
-        System.out.print("filter not tcp，only have http! ");
+        System.out.println("filter not tcp，only have http! ");
     }
 
     @Override
@@ -62,6 +70,7 @@ public class Filter extends Server {
 
     @Override
     protected void setDataPort(int dataPort) {
+        System.out.println("filter get data port is :" + dataPort);
         this.dataPort = dataPort;
     }
 

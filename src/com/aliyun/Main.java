@@ -15,7 +15,7 @@ public class Main {
     public static byte who = Packet.WHO_FILTER_0;
 
     public static void main(String args[]) throws Exception {
-        listenPort = 8002;
+        listenPort = 8000;
         try {
             listenPort = Integer.valueOf(args[0]);
         } catch (Exception e) {

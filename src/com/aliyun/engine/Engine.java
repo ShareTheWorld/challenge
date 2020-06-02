@@ -38,22 +38,20 @@ public class Engine extends Server {
         }
     }
 
-    @Override
-    public void startFinish() {
-
-    }
-
     private OutputStream out0;
     private OutputStream out1;
 
     @Override
     public void handleTcpSocket(Socket socket, int port) throws Exception {
         if (port == Main.FILTER_0_PORT) {
+            System.out.println(Main.FILTER_0_PORT + " connect success");
             out0 = socket.getOutputStream();
         } else if (port == Main.FILTER_1_PORT) {
+            System.out.println(Main.FILTER_1_PORT + " connect success");
             out1 = socket.getOutputStream();
         }
         handleInputStream(socket.getInputStream());
+        if (out0 != null && out1 != null) server.close();
     }
 
 
