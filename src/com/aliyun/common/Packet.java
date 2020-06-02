@@ -26,6 +26,11 @@ public class Packet {
         bs = new byte[k * 1024];
     }
 
+    public Packet(byte bs[], int len) {
+        this.bs = bs;
+        this.len = len;
+    }
+
 
     public Packet(int k, byte who, byte type) {
         bs = new byte[k * 1024];

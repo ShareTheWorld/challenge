@@ -38,6 +38,11 @@ public class Engine extends Server {
         }
     }
 
+    @Override
+    public void startFinish() {
+
+    }
+
     private OutputStream out0;
     private OutputStream out1;
 
@@ -48,17 +53,13 @@ public class Engine extends Server {
         } else if (port == Main.FILTER_1_PORT) {
             out1 = socket.getOutputStream();
         }
-        InputStream in = socket.getInputStream();
-        new Thread(() -> {
-            handleInputStream(in);
-        }).start();
+        handleInputStream(socket.getInputStream());
     }
 
-    protected void handleInputStream(InputStream in) {
-        while (true) {
 
-        }
-
+    @Override
+    public void handlePacket(Packet packet) {
+        System.out.print(packet);
     }
 
 
@@ -74,6 +75,6 @@ public class Engine extends Server {
     public void sendPacket(Packet packet, int port) {
 
     }
-    
+
 
 }

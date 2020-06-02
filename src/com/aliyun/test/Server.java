@@ -15,6 +15,9 @@ public class Server {
 
 
         DatagramSocket socket = new DatagramSocket(8000);
+        socket.setReceiveBufferSize(128 * 1024 * 1024);
+        int size = socket.getReceiveBufferSize();
+        System.out.print(size);
         byte bs[] = new byte[20 * 1024];
         DatagramPacket packet = new DatagramPacket(bs, bs.length);//创建Packet相当于创建集装箱
         int n = 0;
@@ -25,7 +28,7 @@ public class Server {
             int len = packet.getLength();                            //获取有效的字节个数
             String ip = packet.getAddress().getHostAddress();        //获取ip地址
             int port = packet.getPort();                            //获取端口号
-//            System.out.println((++n) + "   " + ip + "   :" + port + ":" + new String(arr, 0, len));
+            System.out.println((++n) + "   " + ip + "   :" + port + ":" + new String(arr, 0, len));
         }
     }
 

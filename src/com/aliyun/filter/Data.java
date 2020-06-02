@@ -4,11 +4,14 @@ package com.aliyun.filter;
 import com.aliyun.Main;
 import com.aliyun.common.Packet;
 
+import javax.xml.crypto.dsig.spec.XPathType;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 
 /**

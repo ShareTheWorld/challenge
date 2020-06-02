@@ -1,9 +1,12 @@
 package com.aliyun.filter;
 
 
+import com.aliyun.Main;
 import com.aliyun.common.Packet;
 import com.aliyun.common.Server;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.*;
 
 /**
@@ -14,9 +17,10 @@ import java.net.*;
 public class Filter extends Server {
     private int dataPort;
 
-    private InetAddress address;
     private static Filter filter;
-    private DatagramSocket socket;
+
+    private Socket socket;
+    private OutputStream out;
 
 
     public static Filter getFilter() {
@@ -25,18 +29,33 @@ public class Filter extends Server {
 
     public Filter(int port) throws UnknownHostException {
         super(port);
+        filter = this;
+    }
+
+    @Override
+    public void startFinish() {
         try {
-            filter = this;
-            address = InetAddress.getByName("127.0.0.1");
-            socket = new DatagramSocket();                //创建Socket相当于创建码头
+            InetSocketAddress addr = new InetSocketAddress("127.0.0.1", Main.listenPort);
+            socket = new Socket();
+            socket.setReuseAddress(true);//端口复用
+            socket.bind(addr);//绑定到本定的某个端口上，
+            socket.connect(new InetSocketAddress("127.0.0.1", Main.ENGINE_PORT));
+            handleInputStream(socket.getInputStream());
+            out = socket.getOutputStream();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+
     @Override
     public void handleTcpSocket(Socket socket, int port) throws Exception {
+        System.out.print("filter not tcp，only have http! ");
+    }
 
+    @Override
+    public void handlePacket(Packet packet) {
+        System.out.print(packet);
     }
 
 
@@ -45,14 +64,6 @@ public class Filter extends Server {
         this.dataPort = dataPort;
     }
 
-//    @Override
-//    protected void handlePacket(Packet packet) {
-//        if (packet.bs[1] == Packet.TYPE_START) {
-//            Data.getData().start(dataPort);
-//        }
-//        System.out.println("receive " + packet.bs[0] + "  " + packet.bs[1] + "  " + new String(packet.bs, 2, packet.len - 2));
-//
-//    }
 
     public void sendPacket(Packet packet) {
 
