@@ -35,6 +35,7 @@ public class Filter extends Server {
     @Override
     public void startFinish() {
         try {
+            server.close();
             InetSocketAddress addr = new InetSocketAddress("127.0.0.1", Main.listenPort);
             socket = new Socket();
             socket.setReuseAddress(true);//端口复用
