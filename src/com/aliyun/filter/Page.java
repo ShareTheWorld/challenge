@@ -1,14 +1,13 @@
 package com.aliyun.filter;
 
-import com.aliyun.Main;
-import com.aliyun.common.Packet;
 
 import java.util.*;
 
 class Page {
     private static final int SKIP_LEN = 128;//跳过长度
-    public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
     public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
+
+    public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
     public int len;//用于存放数据的长度
     public List<Log>[] bucket = new List[0X10000];
 

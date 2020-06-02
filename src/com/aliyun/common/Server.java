@@ -38,9 +38,11 @@ public abstract class Server {
         if (len > 0) {
             String req = new String(bs, 0, len);
             if (req.contains("ready")) {
+                System.out.println("call api: ready");
                 out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
             }
             if (req.contains("setParameter")) {
+                System.out.println("call api: setParameter");
                 int s = req.indexOf('=');
                 int e = req.indexOf(' ', s);
                 int port = Integer.valueOf(req.substring(s + 1, e));
@@ -52,7 +54,7 @@ public abstract class Server {
         out.close();
         socket.close();
     }
-    
+
     public abstract void handleTcpSocket(Socket socket, int port) throws Exception;
 
     public void handleInputStream(InputStream in) {
@@ -60,13 +62,13 @@ public abstract class Server {
             try {
                 while (true) {
                     byte bs[] = new byte[3];
-                    in.read(bs);
-                    int len = (bs[0] & 0XFF) << 16 + (bs[1] & 0XFF) << 8 + bs[2] & 0XFF;
-                    byte data[] = new byte[len];
+                    read(in, bs, 0, 3);
+                    int dataLen = ((bs[0] & 0XFF) << 16) + ((bs[1] & 0XFF) << 8) + (bs[2] & 0XFF);
+                    byte data[] = new byte[dataLen];
                     data[0] = bs[0];
                     data[1] = bs[1];
                     data[2] = bs[2];
-                    in.read(data, 3, len - 3);
+                    read(in, data, 3, dataLen - 3);
                     Packet packet = new Packet(data, data.length);
                     handlePacket(packet);
                 }
@@ -74,6 +76,17 @@ public abstract class Server {
                 e.printStackTrace();
             }
         }).start();
+    }
+
+    //从in中读取n个数据，写到bs中，从s位置开始些
+    private void read(InputStream in, byte[] bs, int s, int n) throws Exception {
+        int len;
+        while ((len = in.read(bs, s, n)) != -1) {
+            if (n - len == 0) break;
+            s += len;
+            n -= len;
+        }
+
     }
 
     public abstract void handlePacket(Packet packet);

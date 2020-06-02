@@ -34,12 +34,15 @@ public class Packet {
 
     public Packet(int k, byte who, byte type) {
         bs = new byte[k * 1024];
-        this.bs[0] = who;
-        this.bs[1] = type;
+        this.bs[P_WHO] = who;
+        this.bs[P_TYPE] = type;
     }
 
     public int getLen() {
-        return (bs[P_LEN] & 0XFF) << 16 + (bs[P_LEN + 1] & 0XFF) << 8 + bs[P_LEN + 2] & 0XFF;
+        if (len <= 0) {
+            len = ((bs[P_LEN] & 0XFF) << 16) + ((bs[P_LEN + 1] & 0XFF) << 8) + (bs[P_LEN + 2] & 0XFF);
+        }
+        return len;
     }
 
     public int getWho() {
@@ -112,7 +115,7 @@ public class Packet {
             }
             return sb.toString();
         } else {
-            return "who:" + who + ", type:" + type + ", len=" + (len - 2) + ", data=\n" + new String(bs, 2, len - 2);
+            return "total len:" + len + ", who:" + who + ", type:" + type + ", len=" + (len - P_DATA) + ", data=\n" + new String(bs, P_DATA, len - P_DATA);
         }
     }
 }

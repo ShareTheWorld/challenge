@@ -43,17 +43,13 @@ public class Data implements Runnable {
 
 
     public void start(int dataPort) {
+        System.out.println("start data handle thread");
         this.dataPort = dataPort;
         new Thread(this).start();
     }
 
-    public void next() {
-
-    }
-
     private Page getPage() {
         Page page = pages[pageIndex % pages.length];
-        page.clear();
         pageIndex++;
         return page;
     }
@@ -64,7 +60,6 @@ public class Data implements Runnable {
         try {
 //            String path = "/Users/fht/d_disk/chellenger/data/";
 //            InputStream in = new FileInputStream(path + "trace1.data");
-
             String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
             System.out.println(path);
             URL url = new URL(path);
@@ -99,9 +94,9 @@ public class Data implements Runnable {
                 totalCount += page.len;
                 page = newPage;
                 if (len == -1) break;
-                if (pageIndex % 10 == 0) {
+                if (pageIndex % (pages.length - 1) == 0) {//保证每次有一页空闲，存放这一次未处理的尾巴数据
                     Filter.getFilter().sendPacket(localError);
-                    handleErrorTraceId();
+//                    handleErrorTraceId();
                     System.out.println("wait activate");
                     synchronized (data) {
                         data.wait();

@@ -46,7 +46,6 @@ public class Filter extends Server {
                 handleInputStream(socket.getInputStream());
                 out = socket.getOutputStream();
             } catch (Exception e) {
-                e.printStackTrace();
             }
             try {
                 Thread.sleep(1000);
@@ -64,7 +63,7 @@ public class Filter extends Server {
 
     @Override
     public void handlePacket(Packet packet) {
-        System.out.print(packet);
+        System.out.println(packet);
     }
 
 
@@ -72,11 +71,19 @@ public class Filter extends Server {
     protected void setDataPort(int dataPort) {
         System.out.println("filter get data port is :" + dataPort);
         this.dataPort = dataPort;
+        Data.getData().start(dataPort);
     }
 
 
     public void sendPacket(Packet packet) {
-
+        try {
+            System.out.println(packet);
+            byte bs[] = packet.getBs();
+            out.write(bs, 0, packet.getLen());
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 

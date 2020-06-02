@@ -51,13 +51,19 @@ public class Engine extends Server {
             out1 = socket.getOutputStream();
         }
         handleInputStream(socket.getInputStream());
-        if (out0 != null && out1 != null) server.close();
     }
 
 
     @Override
     public void handlePacket(Packet packet) {
-        System.out.print(packet);
+        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
+            if (packet.getWho() == Packet.WHO_FILTER_0) {
+                sendPacket(packet, out1);
+            } else {
+                sendPacket(packet, out0);
+            }
+        }
+        System.out.println(packet);
     }
 
 
@@ -66,11 +72,19 @@ public class Engine extends Server {
         System.out.println("engine get port is " + dataPort);
         resultReportPort = dataPort;
         Packet packet = new Packet(1, Main.who, Packet.TYPE_START);
-        sendPacket(packet, 8000);
-        sendPacket(packet, 8001);
+        sendPacket(packet, out0);
+        sendPacket(packet, out1);
     }
 
-    public void sendPacket(Packet packet, int port) {
+    public void sendPacket(Packet packet, OutputStream out) {
+        try {
+            int len = packet.getLen();
+            byte bs[] = packet.getBs();
+            out.write(bs, 0, len);
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
     }
 
