@@ -38,6 +38,11 @@ public class Packet {
         this.bs[P_TYPE] = type;
     }
 
+    public void clear() {
+        int len = 0;
+    }
+
+
     public int getLen() {
         if (len <= 0) {
             len = ((bs[P_LEN] & 0XFF) << 16) + ((bs[P_LEN + 1] & 0XFF) << 8) + (bs[P_LEN + 2] & 0XFF);
@@ -67,15 +72,30 @@ public class Packet {
         return this;
     }
 
+    public void write(byte who, byte type) {
+        bs[P_LEN + 0] = 0;
+        bs[P_LEN + 1] = 0;
+        bs[P_LEN + 2] = 0;
+        this.bs[P_WHO] = who;
+        this.bs[P_TYPE] = type;
+        len = 5;
+    }
+
     /**
      * 只用了两字节
      *
      * @param len
      * @return
      */
-    public Packet write(int len) {
-        bs[this.len++] = (byte) ((len >> 8) & 0XFF);
-        bs[this.len++] = (byte) (len & 0XFF);
+    public Packet writeWithDataLen(byte bs[], int start, int len) {
+        try {
+            this.bs[this.len++] = (byte) ((len >> 8) & 0XFF);
+            this.bs[this.len++] = (byte) (len & 0XFF);
+            System.arraycopy(bs, start, this.bs, this.len, len);
+            this.len += len;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return this;
     }
 

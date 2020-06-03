@@ -5,6 +5,7 @@ import com.aliyun.Main;
 import com.aliyun.common.Packet;
 
 import javax.xml.crypto.dsig.spec.XPathType;
+import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
@@ -58,49 +59,57 @@ public class Data implements Runnable {
     public void run() {
         long startTime = System.currentTimeMillis();
         try {
-//            String path = "/Users/fht/d_disk/chellenger/data/";
-//            InputStream in = new FileInputStream(path + "trace1.data");
-            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            System.out.println(path);
-            URL url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-            InputStream in = conn.getInputStream();
+//            String path = "/Users/fht/d_disk/chellenger/data";
+            String path = "/home/fu/Desktop/challege/data2";
+            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
+//            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+//            System.out.println(path);
+//            URL url = new URL(path);
+//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+//            InputStream in = conn.getInputStream();
 
             Page page = getPage();
             long totalCount = 0;
-            while (true) {
-                System.out.println("start get a page data,pageIndex=" + pageIndex);
-                //保证读取的一页接近1M，
-                int len;
-                while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
-                    page.len += len;
-                    if (page.len == Page.min) break;
-                }
-                Page newPage = getPage();//添加一个新的page
-                for (int i = page.len - 1; i >= 0; i--) {
-                    if ('\n' == page.data[i]) {
-                        int l = page.len - i - 1;
-                        System.arraycopy(page.data, i + 1, newPage.data, 0, l);
-                        page.len = page.len - l;
-                        newPage.len = l;
-                        break;
+            synchronized (Data.class) {
+                while (true) {
+                    System.out.println("start get a page data,pageIndex=" + pageIndex);
+                    //保证读取的一页接近1M，
+                    int len;
+                    while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
+                        page.len += len;
+                        if (page.len == Page.min) break;
                     }
-                }
-                //将这一页码
-                Page t_page = page;
-//                new Thread(()->{
-                t_page.createIndex();
-//                }).start();
-                totalCount += page.len;
-                page = newPage;
-                if (len == -1) break;
-                if (pageIndex % (pages.length - 1) == 0) {//保证每次有一页空闲，存放这一次未处理的尾巴数据
-                    Filter.getFilter().sendPacket(localError);
-                    handleErrorTraceId();
-                    System.out.println("wait activate");
-                    synchronized (data) {
-                        data.wait();
+                    Page newPage = getPage();//添加一个新的page
+                    for (int i = page.len - 1; i >= 0; i--) {
+                        if ('\n' == page.data[i]) {
+                            int l = page.len - i - 1;
+                            System.arraycopy(page.data, i + 1, newPage.data, 0, l);
+                            page.len = page.len - l;
+                            newPage.len = l;
+                            break;
+                        }
                     }
+                    //将这一页码
+                    Page t_page = page;
+                    boolean isStartDealData = pageIndex % (pages.length - 1) == 0 || len == -1;
+                    new Thread(() -> {
+                        t_page.createIndex();
+                        if (isStartDealData) handleErrorTraceId(localError);
+                    }).start();
+                    totalCount += page.len;
+                    page = newPage;
+                    if (isStartDealData) {//保证每次有一页空闲，存放这一次未处理的尾巴数据
+                        System.out.println("send multi trace id");
+                        Filter.getFilter().sendPacket(localError);
+                        System.out.println("stop read");
+//                        while (true) {//TODO 需要等待两个handle都处理完了才唤醒
+                        Data.class.wait();
+                        localError.write(Main.who, Packet.TYPE_MULTI_TRACE_ID);
+//                        }
+                        System.out.println("start read");
+                    }
+
+                    if (len == -1) break;
                 }
             }
             System.out.println("totalCount=" + totalCount);
@@ -116,17 +125,22 @@ public class Data implements Runnable {
      *
      * @return
      */
-    public void handleErrorTraceId() {
+    public void handleErrorTraceId(Packet packet) {
+        if (packet.getType() != Packet.TYPE_MULTI_TRACE_ID) {
+            System.out.println("this packet is not multi trace id type");
+            return;
+        }
         //处理本地错误traceId
-        byte[] bs = localError.getBs();
-        int len = localError.getLen();
-        for (int i = Packet.P_DATA; i < localError.getLen(); i += 16) {
+        byte[] bs = packet.getBs();
+        int len = packet.getLen();
+        for (int i = Packet.P_DATA; i < packet.getLen(); i += 16) {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
-            Packet packet = selectByTraceId(traceId);
-            System.out.println(packet);
-            Filter.getFilter().sendPacket(packet);
+            Packet logsPacket = selectByTraceId(traceId);
+//            System.out.println(logsPacket);
+            Filter.getFilter().sendPacket(logsPacket);
         }
+        packet.clear();
 
     }
 
@@ -162,8 +176,7 @@ public class Data implements Runnable {
 
         //将traceId封装为Packet
         for (byte[] bs : list) {
-            packet.write(bs.length);
-            packet.write(bs, 0, bs.length);
+            packet.writeWithDataLen(bs, 0, bs.length);
         }
         return packet;
     }

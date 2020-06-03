@@ -28,7 +28,7 @@ public class Filter extends Server {
         return filter;
     }
 
-    public Filter(int port) throws UnknownHostException {
+    public Filter(int port) {
         super(port);
         filter = this;
         this.startClient();
@@ -43,6 +43,7 @@ public class Filter extends Server {
                 socket.setReuseAddress(true);//端口复用
                 socket.bind(addr);//绑定到本定的某个端口上，
                 socket.connect(new InetSocketAddress("127.0.0.1", Main.ENGINE_PORT));
+                System.out.println("connect to engine success");
                 handleInputStream(socket.getInputStream());
                 out = socket.getOutputStream();
             } catch (Exception e) {
@@ -58,12 +59,20 @@ public class Filter extends Server {
 
     @Override
     public void handleTcpSocket(Socket socket, int port) throws Exception {
-        System.out.println("filter not tcp，only have http! ");
+        System.out.println("not tcp connection in filter node ， it only have http! ");
     }
 
     @Override
     public void handlePacket(Packet packet) {
-        System.out.println(packet);
+        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
+            synchronized (Data.class) {
+                System.out.println("receive multi trace id");
+                Data.getData().handleErrorTraceId(packet);
+                Data.class.notify();
+            }
+        } else {
+            System.out.println(packet);
+        }
     }
 
 
@@ -77,7 +86,6 @@ public class Filter extends Server {
 
     public void sendPacket(Packet packet) {
         try {
-            System.out.println(packet);
             byte bs[] = packet.getBs();
             out.write(bs, 0, packet.getLen());
             out.flush();

@@ -58,14 +58,16 @@ public class Engine extends Server {
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
             if (packet.getWho() == Packet.WHO_FILTER_0) {
+                System.out.println("send multi trace id to filter 1");
                 sendPacket(packet, out1);
             } else {
+                System.out.println("send multi trace id to filter 0");
                 sendPacket(packet, out0);
             }
             System.out.println(packet);
 
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
-            System.out.println(packet);
+//            System.out.println(packet);
         }
     }
 
@@ -74,9 +76,6 @@ public class Engine extends Server {
     protected void setDataPort(int dataPort) {
         System.out.println("engine get port is " + dataPort);
         resultReportPort = dataPort;
-        Packet packet = new Packet(1, Main.who, Packet.TYPE_START);
-        sendPacket(packet, out0);
-        sendPacket(packet, out1);
     }
 
     public void sendPacket(Packet packet, OutputStream out) {
