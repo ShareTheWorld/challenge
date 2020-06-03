@@ -96,7 +96,7 @@ public class Data implements Runnable {
                 if (len == -1) break;
                 if (pageIndex % (pages.length - 1) == 0) {//保证每次有一页空闲，存放这一次未处理的尾巴数据
                     Filter.getFilter().sendPacket(localError);
-//                    handleErrorTraceId();
+                    handleErrorTraceId();
                     System.out.println("wait activate");
                     synchronized (data) {
                         data.wait();
@@ -124,7 +124,7 @@ public class Data implements Runnable {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
             Packet packet = selectByTraceId(traceId);
-//            System.out.println(packet);
+            System.out.println(packet);
             Filter.getFilter().sendPacket(packet);
         }
 

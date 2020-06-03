@@ -85,7 +85,7 @@ public class Packet {
         int who = 8000 + bs[P_WHO];
 
         String type = "start";
-        switch (bs[1]) {
+        switch (bs[P_TYPE]) {
             case TYPE_START:
                 type = "start";
                 break;
@@ -109,7 +109,8 @@ public class Packet {
 
             StringBuilder sb = new StringBuilder("total len:" + len + ", who:" + who + ", type:" + type + ", data len=" + (len - P_DATA) + ", data=\n");
             for (int i = P_DATA; i < this.len; ) {
-                int l = (bs[i] & 0XFF) << 8 + (bs[i + 1] & 0XFF);
+                int l = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
+//                System.out.println(i + "   " + l + "  " + len);
                 sb.append(l + " " + new String(bs, i + 2, l));//2表示使用了两个字节表示长度
                 i = i + 2 + l;
             }

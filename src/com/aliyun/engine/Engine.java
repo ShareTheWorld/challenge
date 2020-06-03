@@ -62,8 +62,11 @@ public class Engine extends Server {
             } else {
                 sendPacket(packet, out0);
             }
+            System.out.println(packet);
+
+        } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
+            System.out.println(packet);
         }
-        System.out.println(packet);
     }
 
 
