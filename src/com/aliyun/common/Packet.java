@@ -1,9 +1,6 @@
 package com.aliyun.common;
 
 
-import java.net.DatagramPacket;
-import java.net.InetAddress;
-
 public class Packet {
     public static final byte TYPE_START = 1;
     public static final byte TYPE_TRACE_ID = 2;//traceId
@@ -81,6 +78,7 @@ public class Packet {
         len = 5;
     }
 
+
     /**
      * 只用了两字节
      *
@@ -99,6 +97,26 @@ public class Packet {
         return this;
     }
 
+
+    @Override
+    public int hashCode() {
+        int s = P_DATA + 2;//对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
+        int index1 = (bs[s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+        int index2 = (bs[++s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+        return (index1 ^ index2) & 0xFFFF;
+//        return super.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        //对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
+        Packet p = (Packet) obj;
+        for (int s = P_DATA + 2; s < P_DATA + 18; s++) {//这个范围存放的是traceId
+            if (this.bs[s] != p.bs[s]) return false;
+        }
+        return true;
+//        return super.equals(obj);
+    }
 
     @Override
     public String toString() {

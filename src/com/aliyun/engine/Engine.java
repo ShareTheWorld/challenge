@@ -10,8 +10,7 @@ import java.io.OutputStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * 服务器，监听8002端口，
@@ -26,11 +25,21 @@ public class Engine extends Server {
     private DatagramSocket socket;
     private InetAddress address;
 
-    private List<Packet> list = new ArrayList<>(100);
+
+    //总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
+    private byte[] request = new byte[100 * 1024];//100K
+    private int requestLen = 0;
+
+    //错误的数据差不多有两万个
+    private Map<Packet, Packet> map = new HashMap<>(20000);
+
 
     public Engine(int port) {
         super(port);
         try {
+            byte bs[] = "".getBytes();
+            System.arraycopy(bs, 0, request, 0, bs.length);
+            requestLen = bs.length;
             address = InetAddress.getByName("127.0.0.1");
             socket = new DatagramSocket();
         } catch (Exception e) {
@@ -67,8 +76,21 @@ public class Engine extends Server {
             System.out.println(packet);
 
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
+            calcCheckSum(packet);
 //            System.out.println(packet);
         }
+    }
+
+    private void calcCheckSum(Packet packet) {
+        Packet p = map.get(packet);
+        if (p == null) {
+            map.put(packet, packet);
+            return;
+        }
+        if (p.getWho() == packet.getWho()) return;//如果是来自同一个Filter
+
+        //使用归并排序对两个数据进行处理,并计算校验和，放到request中去
+
     }
 
 
