@@ -28,8 +28,16 @@ public class MD5 {
         md.reset();
     }
 
+    public void reset() {
+        md.reset();
+    }
+
     public MD5 update(byte[] bs, int start, int len) {
-        md.update(bs, start, len);
+        try {
+            md.update(bs, start, len);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         return this;
     }
 

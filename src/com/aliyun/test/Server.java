@@ -1,5 +1,7 @@
 package com.aliyun.test;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.ServerSocket;
@@ -34,7 +36,32 @@ public class Server {
 
 
     public static void main(String args[]) throws Exception {
-        new Server().start();
+//        new Server().start();
+        String path = "/Users/fht/d_disk/chellenger/data2/trace1.data";
+        InputStream input = new FileInputStream(path);
+        byte data[] = new byte[1024 * 100];
+        int byteNum = 0;
+        long startTime = System.currentTimeMillis();
+        while ((byteNum = input.read(data)) != -1) {
+            for (int i = 0; i < byteNum; ) {
+                int len = findLine(data, byteNum, i);
+                count++;
+                i += len;
+            }
+        }
+        System.out.println(count);
+        System.out.println(System.currentTimeMillis() - startTime);
+    }
 
+    private static int count;
+
+    public static int findLine(byte bs[], int len, int s) {
+        int i = s;
+        for (; i < len; i++) {
+            if (bs[i] == 10) {
+                break;
+            }
+        }
+        return i - s + 1;
     }
 }

@@ -11,6 +11,7 @@ public class Packet {
     public static final byte WHO_FILTER_0 = 0;//8000
     public static final byte WHO_FILTER_1 = 1;//8001
     public static final byte WHO_ENGINE_2 = 2;//8002
+    public static final byte TRACE_ID_LEN = 16;
 
     public static final int P_LEN = 0;
     public static final int P_WHO = 3;
@@ -100,6 +101,7 @@ public class Packet {
 
     @Override
     public int hashCode() {
+        if (len == 5) return 0;
         int s = P_DATA + 2;//对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
         int index1 = (bs[s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
         int index2 = (bs[++s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
@@ -145,8 +147,13 @@ public class Packet {
         }
         if (bs[P_TYPE] == TYPE_MULTI_LOG) {
 
-            StringBuilder sb = new StringBuilder("total len:" + len + ", who:" + who + ", type:" + type + ", data len=" + (len - P_DATA) + ", data=\n");
-            for (int i = P_DATA; i < this.len; ) {
+            StringBuilder sb = new StringBuilder("total len:" + len +
+                    ", who:" + who +
+                    ", type:" + type +
+                    ", data len=" + (len - P_DATA) +
+                    ", traceId=" + new String(bs, P_DATA, TRACE_ID_LEN) +
+                    ", data=\n");
+            for (int i = P_DATA + TRACE_ID_LEN; i < this.len; ) {
                 int l = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
 //                System.out.println(i + "   " + l + "  " + len);
                 sb.append(l + " " + new String(bs, i + 2, l));//2表示使用了两个字节表示长度
@@ -154,7 +161,11 @@ public class Packet {
             }
             return sb.toString();
         } else {
-            return "total len:" + len + ", who:" + who + ", type:" + type + ", len=" + (len - P_DATA) + ", data=\n" + new String(bs, P_DATA, len - P_DATA);
+            return "total len:" + len +
+                    ", who:" + who +
+                    ", type:" + type +
+                    ", len=" + (len - P_DATA) +
+                    ", data=\n" + new String(bs, P_DATA, len - P_DATA);
         }
     }
 }

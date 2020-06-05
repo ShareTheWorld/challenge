@@ -59,8 +59,8 @@ public class Data implements Runnable {
     public void run() {
         long startTime = System.currentTimeMillis();
         try {
-//            String path = "/Users/fht/d_disk/chellenger/data";
-            String path = "/home/fu/Desktop/challege/data2";
+            String path = "/Users/fht/d_disk/chellenger/data";
+//            String path = "/home/fu/Desktop/challege/data";
             InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 //            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
 //            System.out.println(path);
@@ -137,7 +137,7 @@ public class Data implements Runnable {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
             Packet logsPacket = selectByTraceId(traceId);
-//            System.out.println(logsPacket);
+            System.out.println(logsPacket);
             Filter.getFilter().sendPacket(logsPacket);
         }
         packet.clear();
@@ -154,6 +154,9 @@ public class Data implements Runnable {
      */
     public Packet selectByTraceId(byte[] traceId) {
         Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
+        //先写入traceId
+        packet.write(traceId, 0, traceId.length);
+
         List<byte[]> list = new ArrayList<>(30);
         for (int i = 0; i < pages.length; i++) {
             List<byte[]> l = pages[i].selectByTraceId(traceId);
