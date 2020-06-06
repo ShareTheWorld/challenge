@@ -67,7 +67,7 @@ public class Filter extends Server {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
             synchronized (Data.class) {
                 System.out.println("receive multi trace id");
-                Data.getData().handleErrorTraceId(packet);
+//                Data.getData().handleErrorTraceId(packet);
                 Data.class.notify();
             }
         } else {
@@ -87,7 +87,7 @@ public class Filter extends Server {
     public void sendPacket(Packet packet) {
         try {
 //            if (packet.getLen() == 21)
-                System.out.print(packet);
+//            System.out.print(packet);
             out.write(packet.getBs(), 0, packet.getLen());
             out.flush();
         } catch (Exception e) {

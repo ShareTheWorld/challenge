@@ -2,6 +2,7 @@ package com.aliyun;
 
 import com.aliyun.common.Packet;
 import com.aliyun.engine.Engine;
+import com.aliyun.filter.Container;
 import com.aliyun.filter.Data;
 import com.aliyun.filter.Filter;
 
@@ -15,7 +16,7 @@ public class Main {
     public static byte who = Packet.WHO_FILTER_0;
 
     public static void main(String args[]) throws Exception {
-        listenPort = 8002;
+        listenPort = 8000;
         try {
             listenPort = Integer.valueOf(args[0]);
         } catch (Exception e) {
@@ -30,6 +31,7 @@ public class Main {
             if (listenPort == 8001) who = Packet.WHO_FILTER_1;
             //init
             Data data = Data.getData();//让data初始化需要的内存空间
+            System.out.println("container len is " + Container.class);//为了让Container提前加载进来
 
             //启动端口监听服务
             Filter filter = new Filter(listenPort);

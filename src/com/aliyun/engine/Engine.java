@@ -74,7 +74,7 @@ public class Engine extends Server {
                 System.out.println("send multi trace id to filter 0");
                 sendPacket(packet, out0);
             }
-            System.out.println(packet);
+//            System.out.println(packet);
 
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
 //            calcCheckSum(packet);
