@@ -11,7 +11,7 @@ import java.util.List;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 11;//表示读取数据的缓存大小,最后一个会作为缓存卡着
+    private static final int len = 21;//表示读取数据的缓存大小,最后一个会作为缓存卡着
     private static final Page[] emptyPages = new Page[len];
     private static final Page[] fullPages = new Page[len];
 
@@ -99,7 +99,7 @@ public class Container {
      * @return
      */
     public static Packet selectByTraceId(int start, int end, byte[] traceId) {
-        if ("4940afdf3e685cab".equals(new String(traceId))) {
+        if ("4c5aecbf8adf91bf".equals(new String(traceId))) {
             System.out.println("****");
         }
         Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
@@ -115,16 +115,17 @@ public class Container {
         //表示没有数据
         if (list.size() <= 0) {//去前后查询一次
             int n = 5;
-            //往后面查询n个
+            //往后面查询n个,以前的在emptyPage中放起
             for (int i = start - n < 0 ? 0 : start - n; i < start; i++) {
                 if (emptyPages[i % len] == null) break;
                 List<byte[]> l = emptyPages[i % len].selectByTraceId(traceId);
                 list.addAll(l);
             }
-            //往前面查询n个
+            //往前面查询n个，新的会在fullPage中放起，但是还没建立索引
             for (int i = end; i < end + n; i++) {
-                if (emptyPages[i % len] == null) break;
-                List<byte[]> l = emptyPages[i % len].selectByTraceId(traceId);
+                if (fullPages[i % len] == null) break;
+                fullPages[i % len].createIndex();
+                List<byte[]> l = fullPages[i % len].selectByTraceId(traceId);
                 list.addAll(l);
             }
         }

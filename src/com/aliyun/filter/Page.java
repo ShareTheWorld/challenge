@@ -14,6 +14,7 @@ class Page {
     public int len;//用于存放数据的长度
     public List<Log>[] bucket = new List[0X10000];
     public Packet errorPacket;
+    private boolean isHandle = false;
 
     private static int count[] = new int[256];
     private static int testErrorCount = 0;
@@ -23,6 +24,9 @@ class Page {
 
     //下面是建立索引的字段
     public void createIndex() {
+        if (isHandle) return;
+        isHandle = true;
+        errorPacket = Data.errorPackets[pageIndex / Data.PER_HANDLE_PAGE_NUM];
         int i = 0;
         do {
             int index = hash(data, i);
@@ -124,6 +128,7 @@ class Page {
 
     public void clear() {
         len = 0;
+        isHandle = false;
         bucket = new List[0X10000];
     }
 

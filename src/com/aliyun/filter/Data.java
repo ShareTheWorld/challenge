@@ -19,8 +19,16 @@ public class Data implements Runnable {
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    private static final int PER_HANDLE_PAGE_NUM = 3;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
+    //用于存放错误的日志
+    public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
+
+    static {
+        for (int i = 0; i < errorPackets.length; i++) {
+            errorPackets[i] = new Packet(24, Main.who, Packet.TYPE_MULTI_TRACE_ID);
+        }
+    }
 
 
     //统计用
@@ -108,11 +116,12 @@ public class Data implements Runnable {
         int pageIndex = 0;
         while (pageIndex < totalPageCount) {
             //创建一个Packet，用于存放错误
-            Packet packet = new Packet(24, Main.who, Packet.TYPE_MULTI_TRACE_ID);
+            Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
             int i = 0;
+//            Packet packet = new Packet(24, Main.who, Packet.TYPE_MULTI_TRACE_ID);
             for (; i < PER_HANDLE_PAGE_NUM && pageIndex < totalPageCount; i++) {//表示每次处理多少页
                 Page page = Container.getFullPage(pageIndex++);
-                page.errorPacket = packet;
+//                page.errorPacket = packet;
                 page.createIndex();
             }
             //TODO 处理数据
