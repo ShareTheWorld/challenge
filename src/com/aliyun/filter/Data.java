@@ -126,6 +126,7 @@ public class Data implements Runnable {
      * @return
      */
     public void handleErrorTraceId(Packet packet) {
+        if (true) return;
         if (packet.getType() != Packet.TYPE_MULTI_TRACE_ID) {
             System.out.println("this packet is not multi trace id type");
             return;
@@ -137,7 +138,6 @@ public class Data implements Runnable {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
             Packet logsPacket = selectByTraceId(traceId);
-            System.out.println(logsPacket);
             Filter.getFilter().sendPacket(logsPacket);
         }
         packet.clear();

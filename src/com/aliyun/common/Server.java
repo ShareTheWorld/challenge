@@ -63,12 +63,14 @@ public abstract class Server {
                 while (true) {
                     byte bs[] = new byte[3];
                     read(in, bs, 0, 3);
-                    int dataLen = ((bs[0] & 0XFF) << 16) + ((bs[1] & 0XFF) << 8) + (bs[2] & 0XFF);
-                    byte data[] = new byte[dataLen];
+                    int totalLen = ((bs[0] & 0XFF) << 16) + ((bs[1] & 0XFF) << 8) + (bs[2] & 0XFF);
+                    if (totalLen == 21)
+                        System.out.println("------------data 21 ---------");
+                    byte data[] = new byte[totalLen];
                     data[0] = bs[0];
                     data[1] = bs[1];
                     data[2] = bs[2];
-                    read(in, data, 3, dataLen - 3);
+                    read(in, data, 3, totalLen - 3);
                     Packet packet = new Packet(data, data.length);
                     handlePacket(packet);
                 }

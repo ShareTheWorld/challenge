@@ -87,14 +87,10 @@ public class Packet {
      * @return
      */
     public Packet writeWithDataLen(byte bs[], int start, int len) {
-        try {
-            this.bs[this.len++] = (byte) ((len >> 8) & 0XFF);
-            this.bs[this.len++] = (byte) (len & 0XFF);
-            System.arraycopy(bs, start, this.bs, this.len, len);
-            this.len += len;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        this.bs[this.len++] = (byte) ((len >> 8) & 0XFF);
+        this.bs[this.len++] = (byte) (len & 0XFF);
+        System.arraycopy(bs, start, this.bs, this.len, len);
+        this.len += len;
         return this;
     }
 
@@ -102,9 +98,9 @@ public class Packet {
     @Override
     public int hashCode() {
         if (len == 5) return 0;
-        int s = P_DATA + 2;//对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
-        int index1 = (bs[s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
-        int index2 = (bs[++s] << 12) + (bs[++s] << 8) + (bs[++s] << 4) + (bs[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+        //对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
+        int index1 = (bs[5] << 12) + (bs[6] << 8) + (bs[7] << 4) + (bs[8]);// + (data[++s] << 16) + (data[++s] << 20));
+        int index2 = (bs[9] << 12) + (bs[10] << 8) + (bs[11] << 4) + (bs[12]);// + (data[++s] << 16) + (data[++s] << 20));
         return (index1 ^ index2) & 0xFFFF;
 //        return super.hashCode();
     }
@@ -113,7 +109,7 @@ public class Packet {
     public boolean equals(Object obj) {
         //对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
         Packet p = (Packet) obj;
-        for (int s = P_DATA + 2; s < P_DATA + 18; s++) {//这个范围存放的是traceId
+        for (int s = P_DATA; s < P_DATA + 16; s++) {//这个范围存放的是traceId
             if (this.bs[s] != p.bs[s]) return false;
         }
         return true;

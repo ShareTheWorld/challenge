@@ -78,11 +78,8 @@ public class Engine extends Server {
 
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
 //            calcCheckSum(packet);
-            if (packet.getLen() == 5) {
+            if (packet.getLen() == 21)
                 System.out.println(packet);
-            } else {
-                System.out.println(packet);
-            }
         }
     }
 

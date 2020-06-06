@@ -86,8 +86,9 @@ public class Filter extends Server {
 
     public void sendPacket(Packet packet) {
         try {
-            byte bs[] = packet.getBs();
-            out.write(bs, 0, packet.getLen());
+//            if (packet.getLen() == 21)
+                System.out.print(packet);
+            out.write(packet.getBs(), 0, packet.getLen());
             out.flush();
         } catch (Exception e) {
             e.printStackTrace();
