@@ -99,6 +99,9 @@ public class Container {
      * @return
      */
     public static Packet selectByTraceId(int start, int end, byte[] traceId) {
+        if ("4940afdf3e685cab".equals(new String(traceId))) {
+            System.out.println("****");
+        }
         Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
         //先写入traceId
         packet.write(traceId, 0, traceId.length);
@@ -109,7 +112,22 @@ public class Container {
             list.addAll(l);
         }
 
-        if (list.size() <= 0) return packet;//表示没有数据
+        //表示没有数据
+        if (list.size() <= 0) {//去前后查询一次
+            int n = 5;
+            //往后面查询n个
+            for (int i = start - n < 0 ? 0 : start - n; i < start; i++) {
+                if (emptyPages[i % len] == null) break;
+                List<byte[]> l = emptyPages[i % len].selectByTraceId(traceId);
+                list.addAll(l);
+            }
+            //往前面查询n个
+            for (int i = end; i < end + n; i++) {
+                if (emptyPages[i % len] == null) break;
+                List<byte[]> l = emptyPages[i % len].selectByTraceId(traceId);
+                list.addAll(l);
+            }
+        }
 
 //        Collections.shuffle(list);//测试用
         //排序 TODO 最好使用插入排序

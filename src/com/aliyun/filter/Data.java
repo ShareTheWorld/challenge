@@ -19,8 +19,13 @@ public class Data implements Runnable {
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    private static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int PER_HANDLE_PAGE_NUM = 3;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
+
+
+    //统计用
+    private int emptyLogs = 0;
+    private int fullLogs = 0;
 
     public static Data getData() {
         return data;
@@ -45,7 +50,7 @@ public class Data implements Runnable {
     public void run() {
         startTime = System.currentTimeMillis();
         try {
-            String path = "/Users/fht/d_disk/chellenger/data2";
+            String path = "/Users/fht/d_disk/chellenger/data";
 //            String path = "/home/fu/Desktop/challege/data";
             InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 //            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
@@ -111,26 +116,43 @@ public class Data implements Runnable {
                 page.createIndex();
             }
             //TODO 处理数据
-            Filter.getFilter().sendPacket(packet);
+            Filter.getFilter().sendPacket(packet);//发送错traceIds到engine
             handleErrorTraceId(pageIndex - i, pageIndex, packet);
             Container.moveAllPageToEmpty(pageIndex - i, pageIndex);
         }
+
         System.out.println(pageIndex + " handle data total time=" + (System.currentTimeMillis() - startTime));
+        System.out.println("emptyLogs=" + emptyLogs + ", fullLogs=" + fullLogs);
     }
 
     private void handleErrorTraceId(int start, int end, Packet packet) {
-        System.out.println("select by trace id from [" + start + "," + end + ")");
+        //处理本地错误traceId
+        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
+        realHandleErrorTraceId(start, end, packet);
+
+        //处理其他节点发送过来的traceId
+        packet = Filter.getFilter().getRemoteErrorPacket();
+        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
+        realHandleErrorTraceId(start, end, packet);
+
+
+    }
+
+    private void realHandleErrorTraceId(int start, int end, Packet packet) {
+        System.out.println("traceIds number=" + (packet.getLen() - Packet.P_DATA) / 16);
         //处理本地错误traceId
         byte[] bs = packet.getBs();
         for (int i = Packet.P_DATA; i < packet.getLen(); i += 16) {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
             Packet logsPacket = Container.selectByTraceId(start, end, traceId);
+            if (logsPacket.getLen() == 21) {
+                emptyLogs++;
+            } else {
+                fullLogs++;
+            }
             Filter.getFilter().sendPacket(logsPacket);
         }
-
-        //处理其他节点发送过来的traceId
-
     }
 
 

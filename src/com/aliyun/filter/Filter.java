@@ -8,7 +8,6 @@ import com.aliyun.common.Server;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 
 /**
  * 服务器，监听8000/80001端口，
@@ -22,6 +21,7 @@ public class Filter extends Server {
 
     private Socket socket;
     private OutputStream out;
+    private Packet remoteErrorPacket;
 
 
     public static Filter getFilter() {
@@ -32,6 +32,35 @@ public class Filter extends Server {
         super(port);
         filter = this;
         this.startClient();
+    }
+
+    public synchronized void setRemoteErrorPacket(Packet packet) {
+        try {
+            while (remoteErrorPacket != null) {
+                this.wait();
+            }
+            this.remoteErrorPacket = packet;
+            this.notify();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("filter packet error");
+        }
+    }
+
+    public synchronized Packet getRemoteErrorPacket() {
+        try {
+            while (remoteErrorPacket == null) {
+                this.wait();
+            }
+            Packet packet = remoteErrorPacket;
+            remoteErrorPacket = null;
+            notify();
+            return packet;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("filter packet error");
+        }
+
     }
 
 
@@ -64,12 +93,11 @@ public class Filter extends Server {
 
     @Override
     public void handlePacket(Packet packet) {
-        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
-            synchronized (Data.class) {
-                System.out.println("receive multi trace id");
+        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
+            System.out.println("receive multi trace id");
+            System.out.println(packet);
+            setRemoteErrorPacket(packet);
 //                Data.getData().handleErrorTraceId(packet);
-                Data.class.notify();
-            }
         } else {
             System.out.println(packet);
         }

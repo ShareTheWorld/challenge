@@ -35,6 +35,11 @@ public class Engine extends Server {
     private Map<Packet, Packet> map = new HashMap<>(20000);
 
 
+    //错误统计
+    public static int emptyLogs = 0;
+    public static int fullLogs = 0;
+
+
     public Engine(int port) {
         super(port);
         try {
@@ -74,12 +79,19 @@ public class Engine extends Server {
                 System.out.println("send multi trace id to filter 0");
                 sendPacket(packet, out0);
             }
-//            System.out.println(packet);
+            System.out.println(packet);
 
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
+            synchronized (this) {
 //            calcCheckSum(packet);
-            if (packet.getLen() == 21)
+                if (packet.getLen() == 21) {
+                    emptyLogs++;
                 System.out.println(packet);
+                } else {
+//                System.out.println(packet);
+                    fullLogs++;
+                }
+            }
         }
     }
 
