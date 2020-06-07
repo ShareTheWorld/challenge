@@ -8,9 +8,7 @@ import com.aliyun.common.Server;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
-import java.net.Socket;
+import java.net.*;
 import java.util.*;
 
 /**
@@ -23,11 +21,9 @@ import java.util.*;
  */
 public class Engine extends Server {
     private int resultReportPort;//结果上报端口
-    private DatagramSocket socket;
-    private InetAddress address;
     private MD5 md5 = new MD5();
 
-    //总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
+    //用于向结果提交接口发送数据，总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
     private byte[] request = new byte[100 * 1024];//100K
     private int requestLen = 0;
 
@@ -43,11 +39,18 @@ public class Engine extends Server {
     public Engine(int port) {
         super(port);
         try {
-            byte bs[] = "".getBytes();
+            byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
+                    "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
+                    "Host: localhost:9000\r\n" +
+                    "Content-Length: 215\r\n" +
+                    "Connection: keep-alive\r\n" +
+                    "\r\n" +
+                    "----------------------------428154304761041392223667\r\n" +
+                    "Content-Disposition: form-data; name=\"result\"\r\n" +
+                    "\r\n"
+            ).getBytes();
             System.arraycopy(bs, 0, request, 0, bs.length);
             requestLen = bs.length;
-            address = InetAddress.getByName("127.0.0.1");
-            socket = new DatagramSocket();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -142,7 +145,7 @@ public class Engine extends Server {
         }
         byte res[] = new byte[32];
         md5.digest(res, 0);
-        System.out.println(new String(bs1, Packet.P_DATA, offset - 3) + "   " + new String(res));
+//        System.out.println(new String(bs1, Packet.P_DATA, offset - 3) + "   " + new String(res));
     }
 
     private int compareBytes(byte bs1[], int s1, byte bs2[], int s2, int len) {
@@ -169,7 +172,26 @@ public class Engine extends Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
 
+    private void sendResult() {
+        try {
+            //要放到最后
+            byte bs[] = "\r\n----------------------------428154304761041392223667--\r\n".getBytes();
+            System.arraycopy(bs, 0, request, requestLen, bs.length);
+            Socket socket = new Socket();
+            socket.connect(new InetSocketAddress("127.0.0.1", 9000));
+            OutputStream out = socket.getOutputStream();
+            out.write(request, 0, requestLen);
+            out.flush();
+            InputStream in = socket.getInputStream();
+            byte result[] = new byte[1024];
+            int n = in.read(result);
+            String str = new String(result, 0, n);
+            System.out.println(str);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
 
