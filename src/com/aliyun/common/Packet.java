@@ -19,6 +19,7 @@ public class Packet {
     public static final int P_DATA = 5;
     private byte bs[];//[len0,len1,len2,who,type,data] data=len data len data
     private int len = 5;//代表bs的使用长度
+    public boolean isHandle;//是否处理，主要是在计算校验和的时候需要用一下，不符合设计规范，主要是为了提高速度
 
     public Packet(int k) {
         bs = new byte[k * 1024];

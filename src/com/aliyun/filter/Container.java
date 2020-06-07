@@ -99,9 +99,6 @@ public class Container {
      * @return
      */
     public static Packet selectByTraceId(int start, int end, byte[] traceId) {
-        if ("4c5aecbf8adf91bf".equals(new String(traceId))) {
-            System.out.println("****");
-        }
         Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
         //先写入traceId
         packet.write(traceId, 0, traceId.length);
@@ -112,7 +109,7 @@ public class Container {
             list.addAll(l);
         }
 
-        //表示没有数据
+        //表示没有数据,向前向后查询，如果没有读取数据的缓存页，这个功能是无用的
         if (list.size() <= 0) {//去前后查询一次
             int n = 5;
             //往后面查询n个,以前的在emptyPage中放起
