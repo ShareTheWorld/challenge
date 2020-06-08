@@ -58,8 +58,8 @@ public class Data implements Runnable {
     public void run() {
         startTime = System.currentTimeMillis();
         try {
-            String path = "/Users/fht/d_disk/chellenger/data";
-//            String path = "/home/fu/Desktop/challege/data";
+//            String path = "/Users/fht/d_disk/chellenger/data";
+            String path = "/home/fu/Desktop/challege/data";
             InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 //            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
 //            System.out.println(path);

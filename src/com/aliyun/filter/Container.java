@@ -130,12 +130,13 @@ public class Container {
 //        Collections.shuffle(list);//测试用
         //排序 TODO 最好使用插入排序
         Collections.sort(list, (bs1, bs2) -> {
-            int s1 = 17, s2 = 17;//正常是17这个位置开始是时间
-            if (bs1[15] == '|') s1 = 16;
-            if (bs2[15] == '|') s2 = 16;
-            for (int i = 10; i < 16; i++) {//TODO 时间的前面几位数可以不比较
-                if (bs1[s1 + i] == bs2[s2 + i]) continue;
-                return bs1[s1 + i] - bs2[s2 + i];
+            //因为b1和b2的traceId都是一样的，可以随便指定一个开始位置
+//            int s1 = 17, s2 = 17;//正常是17这个位置开始是时间
+//            if (bs1[15] == '|') s1 = 16;
+//            if (bs2[15] == '|') s2 = 16;
+            for (int i = 20; i < 35; i++) {//TODO 时间的前面几位数可以不比较
+                if (bs1[i] == bs2[i]) continue;
+                return bs1[i] - bs2[i];
             }
             return 0;
         });

@@ -42,12 +42,13 @@ public class Engine extends Server {
             byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
                     "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
                     "Host: localhost:9000\r\n" +
-                    "Content-Length: 215\r\n" +
+                    "Content-Length:      0\r\n" +
                     "Connection: keep-alive\r\n" +
                     "\r\n" +
                     "----------------------------428154304761041392223667\r\n" +
                     "Content-Disposition: form-data; name=\"result\"\r\n" +
-                    "\r\n"
+                    "\r\n" +
+                    "{"
             ).getBytes();
             System.arraycopy(bs, 0, request, 0, bs.length);
             requestLen = bs.length;
@@ -118,7 +119,14 @@ public class Engine extends Server {
         int len2 = p2.getLen();
         int i = Packet.P_DATA + 16, j = Packet.P_DATA + 16;//加上16是因为数据段的开头存放了一个traceId
         //计算时间偏移量，如果P_DATA+16=='|'说明traceId的长度是15，否则是16
-        int offset = bs1[Packet.P_DATA + 16] == '|' ? 2 + 15 + 1 : 2 + 16 + 1;//2是长度，15/16是traceId的长度，1是|
+        //traceId的长度可能好似14，15，16
+        int offset = 20;//TODO 时间的开始位置
+        int traceIdLen;
+        if (bs1[Packet.P_DATA + 14] == '|') traceIdLen = 14;
+        else if (bs1[Packet.P_DATA + 15] == '|') traceIdLen = 15;
+        else traceIdLen = 16;
+//        System.out.println(new String(bs1, Packet.P_DATA, 20) + "  " + traceIdLen);
+
         md5.reset();
         int dataLen1 = 0, dataLen2 = 0;
         while (i < len1 || j < len2) {
@@ -143,8 +151,19 @@ public class Engine extends Server {
                 e.printStackTrace();
             }
         }
-        byte res[] = new byte[32];
-        md5.digest(res, 0);
+//        byte res[] = new byte[32];
+        request[requestLen++] = '"';
+        System.arraycopy(bs1, Packet.P_DATA, request, requestLen, traceIdLen);
+        requestLen += traceIdLen;
+        request[requestLen++] = '"';
+        request[requestLen++] = ':';
+        request[requestLen++] = '"';
+        md5.digest(request, requestLen);
+        requestLen += 32;
+        request[requestLen++] = '"';
+        request[requestLen++] = ',';
+        System.out.println(new String(request, 0, requestLen));
+
 //        System.out.println(new String(bs1, Packet.P_DATA, offset - 3) + "   " + new String(res));
     }
 
