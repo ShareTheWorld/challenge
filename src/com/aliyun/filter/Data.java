@@ -105,6 +105,7 @@ public class Data implements Runnable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
         System.out.println("read data total time=" + (System.currentTimeMillis() - startTime));
     }
 
@@ -129,7 +130,8 @@ public class Data implements Runnable {
             handleErrorTraceId(pageIndex - i, pageIndex, packet);
             Container.moveAllPageToEmpty(pageIndex - i, pageIndex);
         }
-
+        Packet endPacket = new Packet(1, Main.who, Packet.TYPE_END);
+        Filter.getFilter().sendPacket(endPacket);
         System.out.println(pageIndex + " handle data total time=" + (System.currentTimeMillis() - startTime));
         System.out.println("emptyLogs=" + emptyLogs + ", fullLogs=" + fullLogs);
     }

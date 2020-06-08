@@ -27,9 +27,10 @@ public class Engine extends Server {
     private byte[] request = new byte[100 * 1024];//100K
     private int requestLen = 0;
 
+
     //错误的数据差不多有两万个
     private Map<Packet, Packet> map = new HashMap<>(20000);
-
+    private int endFilterNum = 0;//结束的packet的个数
 
     //错误统计
     public static int emptyLogs = 0;
@@ -42,7 +43,7 @@ public class Engine extends Server {
             byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
                     "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
                     "Host: localhost:9000\r\n" +
-                    "Content-Length:      0\r\n" +
+                    "Content-Length:        \r\n" +
                     "Connection: keep-alive\r\n" +
                     "\r\n" +
                     "----------------------------428154304761041392223667\r\n" +
@@ -94,6 +95,13 @@ public class Engine extends Server {
                 } else {
 //                System.out.println(packet);
                     fullLogs++;
+                }
+            }
+        } else if (packet.getType() == Packet.TYPE_END) {
+            synchronized (Engine.class) {
+                endFilterNum++;
+                if (endFilterNum >= 2) {
+                    sendResult();
                 }
             }
         }
@@ -162,7 +170,6 @@ public class Engine extends Server {
         requestLen += 32;
         request[requestLen++] = '"';
         request[requestLen++] = ',';
-        System.out.println(new String(request, 0, requestLen));
 
 //        System.out.println(new String(bs1, Packet.P_DATA, offset - 3) + "   " + new String(res));
     }
@@ -195,11 +202,22 @@ public class Engine extends Server {
 
     private void sendResult() {
         try {
+            request[requestLen - 1] = '}';//将最后一个','换成'}'
             //要放到最后
             byte bs[] = "\r\n----------------------------428154304761041392223667--\r\n".getBytes();
             System.arraycopy(bs, 0, request, requestLen, bs.length);
-            Socket socket = new Socket();
-            socket.connect(new InetSocketAddress("127.0.0.1", 9000));
+            requestLen += bs.length;
+            //将长度写道Content-Length中去
+            String cl = String.valueOf(requestLen - 198);//197是请求行和请求头占的长度
+            for (int i = 0; i < cl.length(); i++) {
+                request[162 + i] = (byte) (cl.charAt(i));
+            }
+
+            System.out.println(new String(request, 0, requestLen));
+//            Thread.sleep(100);
+            Socket socket=new Socket("127.0.0.1",9000);
+//            Socket socket = new Socket();
+//            socket.connect(new InetSocketAddress("127.0.0.1", 9000));
             OutputStream out = socket.getOutputStream();
             out.write(request, 0, requestLen);
             out.flush();
