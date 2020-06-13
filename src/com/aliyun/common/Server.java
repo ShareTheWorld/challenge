@@ -38,11 +38,11 @@ public abstract class Server {
         if (len > 0) {
             String req = new String(bs, 0, len);
             if (req.contains("ready")) {
-                System.out.println("call api: ready");
+                System.out.println("call api: ready, startTime=" + System.currentTimeMillis());
                 out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
             }
             if (req.contains("setParameter")) {
-                System.out.println("call api: setParameter");
+                System.out.println("call api: setParameter=" + System.currentTimeMillis());
                 int s = req.indexOf('=');
                 int e = req.indexOf(' ', s);
                 int port = Integer.valueOf(req.substring(s + 1, e));

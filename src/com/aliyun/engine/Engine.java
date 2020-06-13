@@ -24,7 +24,7 @@ public class Engine extends Server {
     private MD5 md5 = new MD5();
 
     //用于向结果提交接口发送数据，总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
-    private byte[] request = new byte[100 * 1024];//100K
+    private byte[] request = new byte[5 * 1024 * 1024];//100K
     private int requestLen = 0;
 
 
@@ -35,6 +35,7 @@ public class Engine extends Server {
     //错误统计
     public static int emptyLogs = 0;
     public static int fullLogs = 0;
+    public static long startTime = 0;
 
 
     public Engine(int port) {
@@ -42,7 +43,7 @@ public class Engine extends Server {
         try {
             byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
                     "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
-                    "Host: localhost:9000\r\n" +
+                    "Host: localhost:" + resultReportPort + "\r\n" +
                     "Content-Length:        \r\n" +
                     "Connection: keep-alive\r\n" +
                     "\r\n" +
@@ -61,6 +62,9 @@ public class Engine extends Server {
     private OutputStream out0;
     private OutputStream out1;
 
+    /**
+     * 处理tcp链接
+     */
     @Override
     public void handleTcpSocket(Socket socket, int port) throws Exception {
         if (port == Main.FILTER_0_PORT) {
@@ -74,6 +78,9 @@ public class Engine extends Server {
     }
 
 
+    /**
+     * 处理从tcp流中解析出来的Packet
+     */
     @Override
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
@@ -85,7 +92,6 @@ public class Engine extends Server {
                 sendPacket(packet, out0);
             }
             System.out.println(packet);
-
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
             synchronized (this) {//因为会有两个线程调用，所以需要同步
                 calcCheckSum(packet);
@@ -185,8 +191,10 @@ public class Engine extends Server {
 
     @Override
     protected void setDataPort(int dataPort) {
+        startTime = System.currentTimeMillis();
         System.out.println("engine get port is " + dataPort);
         resultReportPort = dataPort;
+//        resultReportPort = 9000;
     }
 
     public void sendPacket(Packet packet, OutputStream out) {
@@ -214,8 +222,9 @@ public class Engine extends Server {
             }
 
             System.out.println(new String(request, 0, requestLen));
-//            Thread.sleep(100);
-            Socket socket=new Socket("127.0.0.1",9000);
+            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
+            Thread.sleep(5000);
+            Socket socket = new Socket("127.0.0.1", resultReportPort);
 //            Socket socket = new Socket();
 //            socket.connect(new InetSocketAddress("127.0.0.1", 9000));
             OutputStream out = socket.getOutputStream();
@@ -226,6 +235,7 @@ public class Engine extends Server {
             int n = in.read(result);
             String str = new String(result, 0, n);
             System.out.println(str);
+            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
         } catch (Exception e) {
             e.printStackTrace();
         }

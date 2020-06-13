@@ -6,6 +6,9 @@ import com.aliyun.common.Packet;
 
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.Proxy;
+import java.net.URL;
 
 
 /**
@@ -15,18 +18,18 @@ import java.io.InputStream;
  * 根据traceId查询出错误的日志
  */
 public class Data implements Runnable {
-    public static final int PER_READ_LEN = 256 * 1024;//每次读取长度
+    public static final int PER_READ_LEN = 8 * 1024 * 1024;//每次读取长度
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 20;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
     //用于存放错误的日志
     public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
 
     static {
         for (int i = 0; i < errorPackets.length; i++) {
-            errorPackets[i] = new Packet(24, Main.who, Packet.TYPE_MULTI_TRACE_ID);
+            errorPackets[i] = new Packet(48, Main.who, Packet.TYPE_MULTI_TRACE_ID);
         }
     }
 
@@ -59,20 +62,20 @@ public class Data implements Runnable {
         startTime = System.currentTimeMillis();
         try {
 //            String path = "/Users/fht/d_disk/chellenger/data";
-            String path = "/home/fu/Desktop/challege/data";
-            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
-//            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-//            System.out.println(path);
-//            URL url = new URL(path);
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-//            InputStream in = conn.getInputStream();
+//            String path = "/home/fu/Desktop/challege/data";
+//            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
+            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+            System.out.println(path);
+            URL url = new URL(path);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+            InputStream in = conn.getInputStream();
 
             int pageIndex = 0;
             Page page = Container.getEmptyPage(pageIndex);
             long totalCount = 0;
             synchronized (Data.class) {
                 while (true) {
-                    System.out.println("start get a page data,pageIndex=" + pageIndex);
+                    System.out.println("start get a page data,pageIndex=" + pageIndex + "  " + System.currentTimeMillis());
 
                     //读取一页数据，
                     int len;
@@ -106,7 +109,8 @@ public class Data implements Runnable {
             e.printStackTrace();
         }
 
-        System.out.println("read data total time=" + (System.currentTimeMillis() - startTime));
+        System.out.println("read data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
+
     }
 
 
@@ -116,6 +120,7 @@ public class Data implements Runnable {
     public void handleData() {
         int pageIndex = 0;
         while (pageIndex < totalPageCount) {
+            System.out.println("handle page index ,time=" + System.currentTimeMillis());
             //创建一个Packet，用于存放错误
             Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
             int i = 0;
@@ -132,7 +137,7 @@ public class Data implements Runnable {
         }
         Packet endPacket = new Packet(1, Main.who, Packet.TYPE_END);
         Filter.getFilter().sendPacket(endPacket);
-        System.out.println(pageIndex + " handle data total time=" + (System.currentTimeMillis() - startTime));
+        System.out.println(pageIndex + " handle data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
         System.out.println("emptyLogs=" + emptyLogs + ", fullLogs=" + fullLogs);
     }
 

@@ -6,7 +6,7 @@ import com.aliyun.common.Packet;
 import java.util.*;
 
 class Page {
-    private static final int SKIP_LEN = 70;//跳过长度
+    private static final int SKIP_LEN = 100;//跳过长度
     public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
 
     public int pageIndex;
