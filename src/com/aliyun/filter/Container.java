@@ -11,7 +11,7 @@ import java.util.List;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 41;//表示读取数据的缓存大小,最后一个会作为缓存卡着
+    private static final int len = 42;//表示读取数据的缓存大小,最后一个会作为缓存卡着
     private static final Page[] emptyPages = new Page[len];
     private static final Page[] fullPages = new Page[len];
 

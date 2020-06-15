@@ -7,12 +7,14 @@ import java.util.*;
 
 class Page {
     private static final int SKIP_LEN = 100;//跳过长度
-    public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
+    public static int min = 64 * 1024 * 1024;//要求读数据的最小长度
 
     public int pageIndex;
-    public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界
+    public byte[] data = new byte[64 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界 32M可存22万条，每条（150）
     public int len;//用于存放数据的长度
-    public List<Log>[] bucket = new List[0X10000];
+
+    public static final int bucketLen = 0X100000;
+    public List<Log>[] bucket = new List[bucketLen];//每一个traceId大概会有20条
     public Packet errorPacket;
     private boolean isHandle = false;
 
@@ -20,6 +22,7 @@ class Page {
     private static int testErrorCount = 0;
     public static int testLineNumber = 0;
     public static Set<String> countErrorSet = new HashSet<>();
+    public static Set<Integer> countHashSet = new HashSet<>();
     public static int logMinLength = 2000;//日志最小长度
 
     //下面是建立索引的字段
@@ -36,17 +39,28 @@ class Page {
                 e.printStackTrace();
             }
             Log log = getLog(data, i, len);
+            countErrorSet.add(new String(data, log.start, 16));
             bucket[index].add(log);
             i += log.len;
             testLineNumber++;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
+        System.out.println("页码：" + pageIndex + ",总行数:" + testLineNumber + ",不重复行数:" + countErrorSet.size() + ",哈希数:" + countHashSet.size());
     }
 
 
     private int hash(byte data[], int s) {
-        int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
-        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
-        return (index1 ^ index2) & 0xFFFF;
+//        int index1 = (data[s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+//        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+//        int index = (index1 ^ index2) & 0xFFFF;
+//        countHashSet.add(index);
+//        return index;
+        int index1 = (data[++s] << 15) + (data[++s] << 12) + (data[++s] << 9) + (data[++s] << 6) + (data[++s] << 3) + data[++s];
+//        int index1 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + data[++s];// + (data[++s] << 16) + (data[++s] << 20));
+//        int index2 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
+//        int index = (index1) & 0xFFFFF;
+//        countHashSet.add(index);
+//        return index;
+        return (index1) & 0xFFFFF;
     }
 
 
@@ -129,7 +143,7 @@ class Page {
     public void clear() {
         len = 0;
         isHandle = false;
-        bucket = new List[0X10000];
+        bucket = new List[bucketLen];
     }
 
 }

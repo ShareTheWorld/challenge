@@ -26,6 +26,7 @@ public class Engine extends Server {
     //用于向结果提交接口发送数据，总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
     private byte[] request = new byte[5 * 1024 * 1024];//100K
     private int requestLen = 0;
+    private int requestLineAndHeaderLen = 198;
 
 
     //错误的数据差不多有两万个
@@ -52,6 +53,7 @@ public class Engine extends Server {
                     "\r\n" +
                     "{"
             ).getBytes();
+            requestLineAndHeaderLen = bs.length - 104;
             System.arraycopy(bs, 0, request, 0, bs.length);
             requestLen = bs.length;
         } catch (Exception e) {
@@ -194,7 +196,6 @@ public class Engine extends Server {
         startTime = System.currentTimeMillis();
         System.out.println("engine get port is " + dataPort);
         resultReportPort = dataPort;
-//        resultReportPort = 9000;
     }
 
     public void sendPacket(Packet packet, OutputStream out) {
@@ -216,7 +217,7 @@ public class Engine extends Server {
             System.arraycopy(bs, 0, request, requestLen, bs.length);
             requestLen += bs.length;
             //将长度写道Content-Length中去
-            String cl = String.valueOf(requestLen - 198);//197是请求行和请求头占的长度
+            String cl = String.valueOf(requestLen - requestLineAndHeaderLen);
             for (int i = 0; i < cl.length(); i++) {
                 request[162 + i] = (byte) (cl.charAt(i));
             }

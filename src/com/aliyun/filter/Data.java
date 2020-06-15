@@ -62,13 +62,13 @@ public class Data implements Runnable {
         startTime = System.currentTimeMillis();
         try {
 //            String path = "/Users/fht/d_disk/chellenger/data";
-//            String path = "/home/fu/Desktop/challege/data";
-//            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
-            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            System.out.println(path);
-            URL url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-            InputStream in = conn.getInputStream();
+            String path = "/home/fu/Desktop/challege/data";
+            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
+//            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+//            System.out.println(path);
+//            URL url = new URL(path);
+//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+//            InputStream in = conn.getInputStream();
 
             int pageIndex = 0;
             Page page = Container.getEmptyPage(pageIndex);

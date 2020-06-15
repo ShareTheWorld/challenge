@@ -5,3 +5,4 @@ logs/
 .DS_Store
 out/
 src/META-INF/
+docker/*.jar
