@@ -59,6 +59,15 @@ public class Engine extends Server {
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        new Thread(() -> {//测试，两分钟过后，就制动上报数据，让程序尽快结束
+            try {
+                Thread.sleep(12000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            sendResult();
+        }).start();
     }
 
     private OutputStream out0;

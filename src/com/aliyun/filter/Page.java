@@ -7,10 +7,10 @@ import java.util.*;
 
 class Page {
     private static final int SKIP_LEN = 100;//跳过长度
-    public static int min = 64 * 1024 * 1024;//要求读数据的最小长度
+    public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
 
     public int pageIndex;
-    public byte[] data = new byte[64 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界 32M可存22万条，每条（150）
+    public byte[] data = new byte[32 * 1024 * 1024];//用于存放数据,+100是避免数据访问越界 32M可存22万条，每条（150）
     public int len;//用于存放数据的长度
 
     public static final int bucketLen = 0X100000;
@@ -33,6 +33,7 @@ class Page {
         int i = 0;
         do {
             int index = hash(data, i);
+            countHashSet.add(index);
             try {
                 if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
             } catch (Exception e) {
@@ -44,7 +45,7 @@ class Page {
             i += log.len;
             testLineNumber++;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
-        System.out.println("页码：" + pageIndex + ",总行数:" + testLineNumber + ",不重复行数:" + countErrorSet.size() + ",哈希数:" + countHashSet.size());
+        System.out.println("pageIndex：" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
 
@@ -54,13 +55,13 @@ class Page {
 //        int index = (index1 ^ index2) & 0xFFFF;
 //        countHashSet.add(index);
 //        return index;
-        int index1 = (data[++s] << 15) + (data[++s] << 12) + (data[++s] << 9) + (data[++s] << 6) + (data[++s] << 3) + data[++s];
+        int index = (data[++s] << 15) + (data[++s] << 12) + (data[++s] << 9) + (data[++s] << 6) + (data[++s] << 3) + data[++s];
 //        int index1 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + data[++s];// + (data[++s] << 16) + (data[++s] << 20));
 //        int index2 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
 //        int index = (index1) & 0xFFFFF;
-//        countHashSet.add(index);
+
 //        return index;
-        return (index1) & 0xFFFFF;
+        return index & 0xFFFFF;
     }
 
 

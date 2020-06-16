@@ -76,6 +76,7 @@ public class Filter extends Server {
                 handleInputStream(socket.getInputStream());
                 out = socket.getOutputStream();
             } catch (Exception e) {
+//                e.printStackTrace();
             }
             try {
                 Thread.sleep(1000);
@@ -116,6 +117,8 @@ public class Filter extends Server {
         try {
 //            if (packet.getLen() == 21)
 //            System.out.print(packet);
+            String str = packet.toString();
+            System.out.println(str.substring(0, Math.min(100, str.length())));
             out.write(packet.getBs(), 0, packet.getLen());
             out.flush();
         } catch (Exception e) {
