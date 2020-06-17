@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Arrays;
 
 public abstract class Server {
     protected ServerSocket server;
@@ -65,13 +64,6 @@ public abstract class Server {
                     byte bs[] = new byte[3];
                     read(in, bs, 0, 3);
                     int totalLen = ((bs[0] & 0XFF) << 16) + ((bs[1] & 0XFF) << 8) + (bs[2] & 0XFF);
-                    System.out.println("bs=" + Arrays.toString(bs) + "  totalLen" + totalLen);
-                    if (totalLen == 0) {
-                        bs = new byte[4 * 1024];
-                        int n = in.read(bs, 0, bs.length);
-                        System.out.println("listenPort=" + listenPort + ",n=" + n);
-                        System.out.println(Arrays.toString(bs));
-                    }
                     byte data[] = new byte[totalLen];
                     data[0] = bs[0];
                     data[1] = bs[1];

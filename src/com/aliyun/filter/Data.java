@@ -20,18 +20,18 @@ import java.net.URL;
  * 根据traceId查询出错误的日志
  */
 public class Data implements Runnable {
-    public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
+    public static final int PER_READ_LEN = 8 * 1024 * 1024;//每次读取长度
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 3;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
     //用于存放错误的日志
-    public static Packet errorPackets[] = new Packet[600 / PER_HANDLE_PAGE_NUM];
+    public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
 
     static {
         for (int i = 0; i < errorPackets.length; i++) {
-            errorPackets[i] = new Packet(64, Main.who, Packet.TYPE_MULTI_TRACE_ID);
+            errorPackets[i] = new Packet(48, Main.who, Packet.TYPE_MULTI_TRACE_ID);
         }
     }
 

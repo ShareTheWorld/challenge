@@ -10,3 +10,5 @@
     sudo docker build -t challenge:1.8 .
 sudo docker search ubuntu
 sudo docker logs -f -t --tail 1000 41c98741881a
+
+java -Dserver.port=7000 -DcheckSumPath=./checkSum.data -jar ./scoring-1.0-SNAPSHOT.jar
