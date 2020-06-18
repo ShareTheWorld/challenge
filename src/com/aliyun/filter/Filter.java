@@ -95,8 +95,8 @@ public class Filter extends Server {
     @Override
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
-            System.out.println("receive multi trace id");
-            System.out.println(packet);
+//            System.out.println("receive multi trace id");
+//            System.out.println(packet);
             setRemoteErrorPacket(packet);
 //                Data.getData().handleErrorTraceId(packet);
         } else {

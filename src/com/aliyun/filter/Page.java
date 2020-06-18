@@ -6,7 +6,7 @@ import com.aliyun.common.Packet;
 import java.util.*;
 
 class Page {
-    private static final int SKIP_LEN = 100;//跳过长度
+    private static final int SKIP_LEN = 70;//跳过长度
     public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
 
     public int pageIndex;
@@ -31,19 +31,16 @@ class Page {
         int i = 0;
         do {
             int index = hash(data, i);
-            countHashSet.add(index);
-            try {
-                if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+//            countHashSet.add(index);
+            if (bucket[index] == null) bucket[index] = new ArrayList(32);//平均大小17.5
             Log log = getLog(data, i, len);
-            countErrorSet.add(new String(data, log.start, 16));
+//            countErrorSet.add(new String(data, log.start, 16));
             bucket[index].add(log);
             i += log.len;
-            testLineNumber++;
+//            testLineNumber++;
+
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
-        System.out.println("pageIndex：" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
+//        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
 
@@ -52,7 +49,7 @@ class Page {
 //        int index2 = (data[++s] << 12) + (data[++s] << 8) + (data[++s] << 4) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
 //        int index = (index1 ^ index2) & 0xFFFF;
 //        return index;
-        int index = (data[++s] << 15) + (data[++s] << 12) + (data[++s] << 9) + (data[++s] << 6) + (data[++s] << 3) + data[++s];
+        int index = (data[++s] << 12) + (data[++s] << 9) + (data[++s] << 6) + (data[++s] << 3) + data[++s];
 //        int index1 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + data[++s];// + (data[++s] << 16) + (data[++s] << 20));
 //        int index2 = (data[++s] << 15) + (data[++s] << 10) + (data[++s] << 5) + (data[++s]);// + (data[++s] << 16) + (data[++s] << 20));
 //        int index = (index1) & 0xFFFFF;
@@ -63,47 +60,60 @@ class Page {
 
 
     public Log getLog(byte[] data, int s, int len) {
-        int i = s + SKIP_LEN - 1;
+        int i = s + SKIP_LEN;
         //开始寻早error=1和!http.status_code=200 和\n
         boolean isError = false;
-        while (true) {
-            /* ==========、判断一 跳过指定位置开始寻找错误和换行符===========*/
-            /*
-            //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
-            if (data[++i] == '=') {
-//                count[data[i + 2]]++;
-                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
-                if (data[i - 5] == '_' && (data[i + 1] != '2' || data[i + 2] != '0' || data[i + 3] != '0')
-                        && data[i - 16] == 'h' && data[i - 15] == 't' && data[i - 14] == 't' && data[i - 13] == 'p'
-                        && data[i - 12] == '.' && data[i - 11] == 's' && data[i - 10] == 't' && data[i - 9] == 'a'
-                        && data[i - 8] == 't' && data[i - 7] == 'u' && data[i - 6] == 's'
-                        && data[i - 4] == 'c' && data[i - 3] == 'o' && data[i - 2] == 'd' && data[i - 1] == 'e') {
-                    isError = true;
-                } else if (data[i + 1] == '1' && data[i - 5] == 'e' && data[i - 4] == 'r' && data[i - 3] == 'r' && data[i - 2] == 'o'
-                        && data[i - 1] == 'r') {
-                    isError = true;
-                }
-            } else if (data[i] == '\n') {
-                break;
-            }
-           */
-
-            /* ==========、判断二 假设错误出现在最后一个位置===========*/
-            if (data[++i] == '\n') {
-                if (data[i - 9] == '_' &&
-                        data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
-                        data[i - 16] == '.' && data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
-                        data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
-                        data[i - 8] == 'c' && data[i - 7] == 'o' && data[i - 6] == 'd' && data[i - 5] == 'e' &&
-                        data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')) {
-                    isError = true;
-                } else if (data[i - 7] == 'e' && data[i - 6] == 'r' &&
-                        data[i - 5] == 'r' && data[i - 4] == 'o' &&
-                        data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
-                    isError = true;
-                }
-                break;
-            }
+//        while (true) {
+//            /* ==========、判断一 跳过指定位置开始寻找错误和换行符===========*/
+//            /*
+//            //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
+//            if (data[++i] == '=') {
+////                count[data[i + 2]]++;
+//                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
+//                if (data[i - 5] == '_' && (data[i + 1] != '2' || data[i + 2] != '0' || data[i + 3] != '0')
+//                        && data[i - 16] == 'h' && data[i - 15] == 't' && data[i - 14] == 't' && data[i - 13] == 'p'
+//                        && data[i - 12] == '.' && data[i - 11] == 's' && data[i - 10] == 't' && data[i - 9] == 'a'
+//                        && data[i - 8] == 't' && data[i - 7] == 'u' && data[i - 6] == 's'
+//                        && data[i - 4] == 'c' && data[i - 3] == 'o' && data[i - 2] == 'd' && data[i - 1] == 'e') {
+//                    isError = true;
+//                } else if (data[i + 1] == '1' && data[i - 5] == 'e' && data[i - 4] == 'r' && data[i - 3] == 'r' && data[i - 2] == 'o'
+//                        && data[i - 1] == 'r') {
+//                    isError = true;
+//                }
+//            } else if (data[i] == '\n') {
+//                break;
+//            }
+//           */
+//
+//            /* ==========、判断二 假设错误出现在最后一个位置===========*/
+//            if (data[++i] == '\n') {
+//                if (data[i - 9] == '_' &&
+//                        data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
+//                        data[i - 16] == '.' && data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
+//                        data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
+//                        data[i - 8] == 'c' && data[i - 7] == 'o' && data[i - 6] == 'd' && data[i - 5] == 'e' &&
+//                        data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')) {
+//                    isError = true;
+//                } else if (data[i - 7] == 'e' && data[i - 6] == 'r' &&
+//                        data[i - 5] == 'r' && data[i - 4] == 'o' &&
+//                        data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
+//                    isError = true;
+//                }
+//                break;
+//            }
+//        }
+        while (data[++i] != '\n') ;//找到行尾
+        if (data[i - 9] == '_' &&
+                //data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
+                data[i - 16] == '.' &&// data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
+                //data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
+                // data[i - 8] == 'c' && data[i - 7] == 'o' && data[i - 6] == 'd' && data[i - 5] == 'e' &&
+                data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')) {
+            isError = true;
+        } else if (data[i - 7] == 'e' && data[i - 6] == 'r' &&
+//                    data[i - 5] == 'r' && data[i - 4] == 'o' &&
+                data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
+            isError = true;
         }
         if (i - s + 1 < logMinLength) logMinLength = i - s + 1;
         Log log = new Log(s, i - s + 1, isError);

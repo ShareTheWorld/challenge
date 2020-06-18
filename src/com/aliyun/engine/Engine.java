@@ -232,9 +232,10 @@ public class Engine extends Server {
                 request[162 + i] = (byte) (cl.charAt(i));
             }
 
-            System.out.println(new String(request, 0, requestLen));
+//            System.out.println(new String(request, 0, requestLen));
             System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
+//            resultReportPort = 9000;
             Socket socket = new Socket("127.0.0.1", resultReportPort);
 //            Socket socket = new Socket();
 //            socket.connect(new InetSocketAddress("127.0.0.1", 9000));

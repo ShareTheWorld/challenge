@@ -20,11 +20,11 @@ import java.net.URL;
  * 根据traceId查询出错误的日志
  */
 public class Data implements Runnable {
-    public static final int PER_READ_LEN = 8 * 1024 * 1024;//每次读取长度
+    public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 3;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 20;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
     //用于存放错误的日志
     public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
@@ -67,29 +67,21 @@ public class Data implements Runnable {
 //            String path = "/home/fu/Desktop/challege/data";
 //            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 
-            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            System.out.println(path);
-            URL url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-            InputStream in = conn.getInputStream();
+//            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+//            System.out.println(path);
+//            URL url = new URL(path);
+//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+//            InputStream in = conn.getInputStream();
 
-//            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-//            Socket socket = new Socket("127.0.0.1", dataPort);
-//            String request = ("GET " + path + " HTTP/1.1\r\n" +
-//                    "Host: localhost:" + dataPort + "\r\n" +
-//                    "\r\n");
-//            OutputStream out = socket.getOutputStream();
-//            out.write(request.getBytes());
-//            InputStream in = socket.getInputStream();
-//            int availableLen = in.available();
-//            byte responseLineAndHeader[] = new byte[1024];
-//            int n = in.read(responseLineAndHeader);
-//            System.out.println(availableLen + "  " + new String(responseLineAndHeader, 0, n));
-//
-//            //-------------------计算总长度和开始位置---------------------
-//            for (int i = 0; i < n; i++) {
-//
-//            }
+            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+            Socket socket = new Socket("127.0.0.1", dataPort);
+            String request = ("GET " + path + " HTTP/1.0\r\n" +
+                    "Host: localhost:" + dataPort + "\r\n" +
+                    "\r\n");
+            OutputStream out = socket.getOutputStream();
+            out.write(request.getBytes());
+            out.flush();
+            InputStream in = socket.getInputStream();
 
 
             //--------------------------------------------------------
@@ -143,7 +135,7 @@ public class Data implements Runnable {
     public void handleData() {
         int pageIndex = 0;
         while (pageIndex < totalPageCount) {
-            System.out.println("handle page index " + pageIndex + ",time=" + System.currentTimeMillis());
+            System.out.println("handle data page index " + pageIndex + ",time=" + System.currentTimeMillis());
             //创建一个Packet，用于存放错误
             Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
             int i = 0;
