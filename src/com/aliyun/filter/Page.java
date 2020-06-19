@@ -5,7 +5,7 @@ import com.aliyun.common.Packet;
 
 import java.util.*;
 
-class Page {
+public class Page {
     private static final int SKIP_LEN = 70;//跳过长度
     public static int min = 32 * 1024 * 1024;//要求读数据的最小长度
 
@@ -15,6 +15,7 @@ class Page {
 
     public static final int bucketLen = 0X10000;
     public List<Log>[] bucket = new List[bucketLen];//每一个traceId大概会有20条
+    //    public int[][] bucket = new int[2][bucketLen];
     public Packet errorPacket;
     private boolean isHandle = false;
 
@@ -62,7 +63,7 @@ class Page {
         //开始寻早error=1和!http.status_code=200 和\n
 
         while (data[++i] != '\n') ;//找到行尾
-        if (data[i - 9] == '_' &&
+        if (data[i - 9] == '_' && data[i - 3] != '2' &&
                 data[i - 20] == 'h' && data[i - 19] == 't' && data[i - 18] == 't' && data[i - 17] == 'p' &&
                 data[i - 16] == '.' && data[i - 15] == 's' && data[i - 14] == 't' && data[i - 13] == 'a' &&
                 data[i - 12] == 't' && data[i - 11] == 'u' && data[i - 10] == 's' &&
@@ -70,9 +71,10 @@ class Page {
                 data[i - 4] == '=' && (data[i - 3] != '2' || data[i - 2] != '0' || data[i - 1] != '0')) {
             errorPacket.write(data, s, 16);
 //            System.out.println(new String(data, i - 30, 30));
-        } else if (data[i - 7] == 'e' && data[i - 6] == 'r' &&
+        } else if (data[i - 1] == '1' &&
+                data[i - 7] == 'e' && data[i - 6] == 'r' &&
                 data[i - 5] == 'r' && data[i - 4] == 'o' &&
-                data[i - 3] == 'r' && data[i - 2] == '=' && data[i - 1] == '1') {
+                data[i - 3] == 'r' && data[i - 2] == '=') {
             errorPacket.write(data, s, 16);
 //            System.out.println(new String(data, i - 30, 30));
         }
@@ -108,10 +110,11 @@ class Page {
         return true;
     }
 
+
     public void clear() {
         len = 0;
         isHandle = false;
-        bucket = new List[bucketLen];
+        bucket = new List[bucketLen];//29毫秒
     }
 
 }

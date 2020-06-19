@@ -60,14 +60,14 @@ public class Engine extends Server {
             e.printStackTrace();
         }
 
-//        new Thread(() -> {//测试，两分钟过后，就制动上报数据，让程序尽快结束
-//            try {
-//                Thread.sleep(120000);
-//            } catch (Exception e) {
-//                e.printStackTrace();
-//            }
-//            sendResult();
-//        }).start();
+        new Thread(() -> {//测试，两分钟过后，就制动上报数据，让程序尽快结束
+            try {
+                Thread.sleep(120000);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            sendResult();
+        }).start();
     }
 
     private OutputStream out0;
@@ -102,7 +102,7 @@ public class Engine extends Server {
                 System.out.println("send multi trace id to filter 0");
                 sendPacket(packet, out0);
             }
-            System.out.println(packet);
+//            System.out.println(packet);
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
             synchronized (this) {//因为会有两个线程调用，所以需要同步
                 calcCheckSum(packet);
@@ -235,7 +235,7 @@ public class Engine extends Server {
 //            System.out.println(new String(request, 0, requestLen));
             System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
-            resultReportPort = 9000;
+//            resultReportPort = 9000;
             Socket socket = new Socket("127.0.0.1", resultReportPort);
 //            Socket socket = new Socket();
 //            socket.connect(new InetSocketAddress("127.0.0.1", 9000));

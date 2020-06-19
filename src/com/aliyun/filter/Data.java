@@ -5,8 +5,10 @@ import com.aliyun.Main;
 import com.aliyun.common.Packet;
 
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
+import java.net.Socket;
 import java.net.URL;
 
 
@@ -111,7 +113,7 @@ public class Data implements Runnable {
                     totalCount += page.len;
                     page = newPage;
                     pageIndex++;
-//                    System.out.println("get page time =" + (System.currentTimeMillis() - startTime));
+                    System.out.println("get page time =" + (System.currentTimeMillis() - startTime));
                     if (len == -1) break;
                 }
             }
@@ -160,7 +162,7 @@ public class Data implements Runnable {
         packet = Filter.getFilter().getRemoteErrorPacket();
         System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         realHandleErrorTraceId(start, end, packet);
-//        System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
+        System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
     }
 
     private void realHandleErrorTraceId(int start, int end, Packet packet) {
