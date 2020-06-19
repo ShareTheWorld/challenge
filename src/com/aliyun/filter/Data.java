@@ -4,12 +4,9 @@ package com.aliyun.filter;
 import com.aliyun.Main;
 import com.aliyun.common.Packet;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
-import java.net.Socket;
 import java.net.URL;
 
 
@@ -24,7 +21,7 @@ public class Data implements Runnable {
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 20;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
     //用于存放错误的日志
     public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
@@ -67,21 +64,21 @@ public class Data implements Runnable {
 //            String path = "/home/fu/Desktop/challege/data";
 //            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 
-//            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-//            System.out.println(path);
-//            URL url = new URL(path);
-//            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-//            InputStream in = conn.getInputStream();
+            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+            System.out.println(path);
+            URL url = new URL(path);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+            InputStream in = conn.getInputStream();
 
-            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            Socket socket = new Socket("127.0.0.1", dataPort);
-            String request = ("GET " + path + " HTTP/1.0\r\n" +
-                    "Host: localhost:" + dataPort + "\r\n" +
-                    "\r\n");
-            OutputStream out = socket.getOutputStream();
-            out.write(request.getBytes());
-            out.flush();
-            InputStream in = socket.getInputStream();
+//            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
+//            Socket socket = new Socket("127.0.0.1", dataPort);
+//            String request = ("GET " + path + " HTTP/1.0\r\n" +
+//                    "Host: localhost:" + dataPort + "\r\n" +
+//                    "\r\n");
+//            OutputStream out = socket.getOutputStream();
+//            out.write(request.getBytes());
+//            out.flush();
+//            InputStream in = socket.getInputStream();
 
 
             //--------------------------------------------------------
@@ -90,8 +87,7 @@ public class Data implements Runnable {
             long totalCount = 0;
             synchronized (Data.class) {
                 while (true) {
-                    System.out.println("start get a page data,pageIndex=" + pageIndex + "  " + System.currentTimeMillis());
-
+                    long startTime = System.currentTimeMillis();
                     //读取一页数据，
                     int len;
                     while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
@@ -115,6 +111,7 @@ public class Data implements Runnable {
                     totalCount += page.len;
                     page = newPage;
                     pageIndex++;
+//                    System.out.println("get page time =" + (System.currentTimeMillis() - startTime));
                     if (len == -1) break;
                 }
             }
@@ -135,14 +132,11 @@ public class Data implements Runnable {
     public void handleData() {
         int pageIndex = 0;
         while (pageIndex < totalPageCount) {
-            System.out.println("handle data page index " + pageIndex + ",time=" + System.currentTimeMillis());
             //创建一个Packet，用于存放错误
             Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
             int i = 0;
-//            Packet packet = new Packet(24, Main.who, Packet.TYPE_MULTI_TRACE_ID);
             for (; i < PER_HANDLE_PAGE_NUM && pageIndex < totalPageCount; i++) {//表示每次处理多少页
                 Page page = Container.getFullPage(pageIndex++);
-//                page.errorPacket = packet;
                 page.createIndex();
             }
             //TODO 处理数据
@@ -157,6 +151,7 @@ public class Data implements Runnable {
     }
 
     private void handleErrorTraceId(int start, int end, Packet packet) {
+        long startTime = System.currentTimeMillis();
         //处理本地错误traceId
         System.out.println("select by local trace id ,from [" + start + "," + end + ")");
         realHandleErrorTraceId(start, end, packet);
@@ -165,8 +160,7 @@ public class Data implements Runnable {
         packet = Filter.getFilter().getRemoteErrorPacket();
         System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         realHandleErrorTraceId(start, end, packet);
-
-
+//        System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
     }
 
     private void realHandleErrorTraceId(int start, int end, Packet packet) {

@@ -98,8 +98,10 @@ public class Container {
      * @param traceId
      * @return
      */
+    static Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
+
     public static Packet selectByTraceId(int start, int end, byte[] traceId) {
-        Packet packet = new Packet(32, Main.who, Packet.TYPE_MULTI_LOG);
+        packet.write(Main.who, Packet.TYPE_MULTI_LOG);
         //先写入traceId
         packet.write(traceId, 0, traceId.length);
 

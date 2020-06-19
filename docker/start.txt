@@ -12,3 +12,25 @@ sudo docker search ubuntu
 sudo docker logs -f -t --tail 1000 41c98741881a
 
 java -Dserver.port=7000 -DcheckSumPath=./checkSum.data -jar ./scoring-1.0-SNAPSHOT.jar
+
+
+java -Xms2500m  -Xmn1024m -XX:CompileThreshold=1000 -jar ./challenge.jar 8000
+
+java -Xms2500m  -Xmn1024m -XX:CompileThreshold=1000 -jar ./challenge.jar 8001
+
+java -Xms1500m  -Xmn512m  -XX:CompileThreshold=1000 -jar ./challenge.jar 8002
+
+-Xmx3550m ：设置JVM最大可用内存为3550M。
+
+-Xms3550m：设置JVM初始内存为3550m
+
+-Xmn2g：设置年轻代大小为2G。整个堆大小=年轻代大小 + 年老代大小 + 持久代大小
+
+-XX:+PrintCompilation
+
+-verbose:gc
+
+-Djava.compiler=none
+
+
+-XX:CompileThreshold=5000

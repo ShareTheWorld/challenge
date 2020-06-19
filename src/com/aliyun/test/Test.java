@@ -1,21 +1,14 @@
 package com.aliyun.test;
 
-import java.io.FileInputStream;
-import java.io.InputStream;
-
 public class Test {
     public static void main(String args[]) throws Exception {
-        String path = "/home/fu/Desktop/challege/data";
-        InputStream in = new FileInputStream(path + "/trace1.data");
-        byte b[] = new byte[1024 * 1024];
-        int len = 0;
-        while ((len = in.read(b)) != -1) {
+        byte bs[] = new byte[1024 * 1024 * 32];
 
+        long startTime = System.currentTimeMillis();
+        long l = 0;
+        for (int i = 0; i < 32 * 1024 * 1024; i++) {
+            if (bs[i] == 1) break;
         }
-
-        len = in.read(b);
-        len = in.read(b);
-        len = in.read(b);
-
+        System.out.println(System.currentTimeMillis() - startTime);
     }
 }
