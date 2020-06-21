@@ -1,33 +1,29 @@
 package com.aliyun.common;
 
-import com.aliyun.Main;
-
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import static com.aliyun.common.Const.*;
+
 public abstract class Server {
     protected ServerSocket server;
-    protected int listenPort;//代表的是这个服务需要监听的端口，主要是有启动的时候的参数控制
 
-    public Server(int listenPort) {
-        this.listenPort = listenPort;
-    }
 
     public void run() throws Exception {
-        System.out.println("start tcp listener port " + listenPort);
-        server = new ServerSocket(listenPort);
+        System.out.println("start tcp listener port " + listen_port);
+        server = new ServerSocket(listen_port);
         while (!server.isClosed()) {
             Socket socket = server.accept();
             int port = socket.getPort();
-            if (port == Main.FILTER_0_PORT || port == Main.FILTER_1_PORT) {
+            if (port == FILTER_0_LISTEN_PORT || port == FILTER_1_LISTEN_PORT) {
                 handleTcpSocket(socket, port);
             } else {
                 handleHttpSocket(socket);
             }
         }
-        System.out.println("stop tcp listener port " + listenPort);
+        System.out.println("stop tcp listener port " + listen_port);
     }
 
     private void handleHttpSocket(Socket socket) throws Exception {
@@ -40,14 +36,16 @@ public abstract class Server {
             if (req.contains("ready")) {
                 System.out.println("call api: ready, startTime=" + System.currentTimeMillis());
                 out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
+                out.flush();
             }
             if (req.contains("setParameter")) {
                 System.out.println("call api: setParameter=" + System.currentTimeMillis());
                 int s = req.indexOf('=');
                 int e = req.indexOf(' ', s);
                 int port = Integer.valueOf(req.substring(s + 1, e));
-                setDataPort(port);
                 out.write("HTTP/1.1 200 OK\r\n\r\nsuc".getBytes());
+                out.flush();
+                setDataPort(port);
             }
         }
         in.close();
@@ -69,8 +67,8 @@ public abstract class Server {
                     data[1] = bs[1];
                     data[2] = bs[2];
                     read(in, data, 3, totalLen - 3);
-                    Packet packet = new Packet(data, data.length);
-                    handlePacket(packet);
+//                    Packet packet = new Packet(data, data.length);
+//                    handlePacket(packet);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -89,7 +87,7 @@ public abstract class Server {
 
     }
 
-    public abstract void handlePacket(Packet packet);
+//    public abstract void handlePacket(Packet packet);
 
     protected abstract void setDataPort(int dataPort);
 

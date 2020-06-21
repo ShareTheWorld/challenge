@@ -1,6 +1,5 @@
 package com.aliyun.common;
 
-
 public class Packet {
     public static final byte TYPE_START = 1;
     public static final byte TYPE_TRACE_ID = 2;//traceId
@@ -8,9 +7,6 @@ public class Packet {
     public static final byte TYPE_LOG = 4;//len log
     public static final byte TYPE_MULTI_LOG = 5;//len log len log len log
     public static final byte TYPE_END = 0;
-    public static final byte WHO_FILTER_0 = 0;//8000
-    public static final byte WHO_FILTER_1 = 1;//8001
-    public static final byte WHO_ENGINE_2 = 2;//8002
     public static final byte TRACE_ID_LEN = 16;
 
     public static final int P_LEN = 0;
@@ -166,3 +162,4 @@ public class Packet {
         }
     }
 }
+

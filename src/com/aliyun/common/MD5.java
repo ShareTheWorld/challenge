@@ -9,11 +9,17 @@ public class MD5 {
 
     public static void main(String args[]) {
         MD5 md5 = new MD5();
-        byte bs[] = new byte[]{'a', 'b', 'c', 'd', 'e'};
-        md5.update(bs, 1, 3);
+        long startTime = System.currentTimeMillis();
         byte result[] = new byte[32];
-        md5.digest(result, 0);
-        System.out.println(new String(result));
+        for (int i = 0; i < 10000; i++) {
+            byte bs[] = new byte[10240];
+            md5.update(bs, 0, 1024);
+            md5.digest(result, 0);
+            md5.reset();
+//            System.out.println(new String(result));
+        }
+        long endTime = System.currentTimeMillis();
+        System.out.println(endTime - startTime);
     }
 
     static {

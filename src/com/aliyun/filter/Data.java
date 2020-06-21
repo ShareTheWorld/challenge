@@ -1,186 +1,106 @@
 package com.aliyun.filter;
 
-
-import com.aliyun.Main;
-import com.aliyun.common.Packet;
+import com.aliyun.common.Const;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
-import java.net.Socket;
 import java.net.URL;
+import java.util.HashSet;
+import java.util.Set;
+
+import static com.aliyun.common.Const.data_port;
+
+public class Data {
+    //8M 4万条，去掉重复过后是2100条无重复的traceId
+    private static byte[] buf = new byte[8 * 1024 * 1024];//存放数据的缓冲区，太大了会导致缓存页不停的失效
+    private static byte[] tail = new byte[1024];//尾巴数据
+    private static int tailLen = 0;//尾巴数据的长度
+
+    private static int SKIP_LEN = 130;//每一行跳过长度 4G文件是trace1.data是133，trace2.data是131
+    private static int bucket[] = new int[0X10000];//64K 6.5万条
 
 
-/**
- * 数据处理线程
- * 从网络中获取数据，并按照页存放
- * 为每一页建立索引，并且造出错误
- * 根据traceId查询出错误的日志
- */
-public class Data implements Runnable {
-    public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
-    public static Data data = new Data();
-    private int dataPort;
-    private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 2;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
-    private long startTime;
-    //用于存放错误的日志
-    public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
+    private static int testTotalCount = 0;//总行数
+    public static Set<String> testErrorTraceIdSet = new HashSet<>();//错误traceId
+    public static Set<String> testTraceIdSet = new HashSet<>(10000);//所有traceId
+    public static Set<Integer> testHashSet = new HashSet<>(10000);//哈希数
+    public static int testMinLineLen = 1000;//行的最小长度
 
-    static {
-        for (int i = 0; i < errorPackets.length; i++) {
-            errorPackets[i] = new Packet(48, Main.who, Packet.TYPE_MULTI_TRACE_ID);
-        }
-    }
+    public static void start() throws Exception {
+        long start_time = System.currentTimeMillis();
+        String path = "http://127.0.0.1:" + data_port + "/trace" + (Const.who + 1) + ".data ";
+        System.out.println(path);
+        URL url = new URL(path);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+        InputStream in = conn.getInputStream();
+        int n, len;
+        do {
+            //将尾巴复制到缓冲区中
+            System.arraycopy(tail, 0, buf, 0, tailLen);
+            len = tailLen;
 
-
-    //统计用
-    private int emptyLogs = 0;
-    private int fullLogs = 0;
-
-    public static Data getData() {
-        return data;
-    }
-
-    public Data() {
-        new Thread(() -> handleData()).start();
-    }
-
-
-    public void start(int dataPort) {
-        System.out.println("start data handle thread");
-        this.dataPort = dataPort;
-        new Thread(this).start();
-    }
-
-
-    /**
-     * 负责读取数据
-     */
-    @Override
-    public void run() {
-        startTime = System.currentTimeMillis();
-        try {
-//            String path = "/Users/fht/d_disk/chellenger/data";
-//            String path = "/home/fu/Desktop/challege/data";
-//            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
-
-            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            System.out.println(path);
-            URL url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-            InputStream in = conn.getInputStream();
-
-//            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-//            Socket socket = new Socket("127.0.0.1", dataPort);
-//            String request = ("GET " + path + " HTTP/1.0\r\n" +
-//                    "Host: localhost:" + dataPort + "\r\n" +
-//                    "\r\n");
-//            OutputStream out = socket.getOutputStream();
-//            out.write(request.getBytes());
-//            out.flush();
-//            InputStream in = socket.getInputStream();
-
-
-            //--------------------------------------------------------
-            int pageIndex = 0;
-            Page page = Container.getEmptyPage(pageIndex);
-            long totalCount = 0;
-            synchronized (Data.class) {
-                while (true) {
-                    long startTime = System.currentTimeMillis();
-                    //读取一页数据，
-                    int len;
-                    while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
-                        page.len += len;
-                        if (page.len == Page.min) break;
-                    }
-
-                    //将尾部数据放到下一页
-                    Page newPage = Container.getEmptyPage(pageIndex + 1);//添加一个新的page
-                    newPage.clear();
-                    for (int i = page.len - 1; i >= 0; i--) {
-                        if ('\n' == page.data[i]) {
-                            int l = page.len - i - 1;
-                            System.arraycopy(page.data, i + 1, newPage.data, 0, l);
-                            page.len = page.len - l;
-                            newPage.len = l;
-                            break;
-                        }
-                    }
-                    Container.movePageToFull(pageIndex);
-                    totalCount += page.len;
-                    page = newPage;
-                    pageIndex++;
-                    System.out.println("get page time =" + (System.currentTimeMillis() - startTime));
-                    if (len == -1) break;
-                }
+            //读取一页数据，
+            while ((n = in.read(buf, len, buf.length - len)) != -1) {
+                len += n;
+                if (len == buf.length) break;
             }
-            totalPageCount = pageIndex;
-            System.out.println("totalCount=" + totalCount);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("read data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
-
-    }
 
 
-    /**
-     * 负责处理数据
-     */
-    public void handleData() {
-        int pageIndex = 0;
-        while (pageIndex < totalPageCount) {
-            //创建一个Packet，用于存放错误
-            Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
-            int i = 0;
-            for (; i < PER_HANDLE_PAGE_NUM && pageIndex < totalPageCount; i++) {//表示每次处理多少页
-                Page page = Container.getFullPage(pageIndex++);
-                page.createIndex();
+            //反向找到换行符
+            for (tailLen = 0; tailLen < 1000; tailLen++) {
+                if (buf[len - 1 - tailLen] == '\n') break;
             }
-            //TODO 处理数据
-            Filter.getFilter().sendPacket(packet);//发送错traceIds到engine
-            handleErrorTraceId(pageIndex - i, pageIndex, packet);
-            Container.moveAllPageToEmpty(pageIndex - i, pageIndex);
-        }
-        Packet endPacket = new Packet(1, Main.who, Packet.TYPE_END);
-        Filter.getFilter().sendPacket(endPacket);
-        System.out.println(pageIndex + " handle data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
-        System.out.println("emptyLogs=" + emptyLogs + ", fullLogs=" + fullLogs);
+            handleData(buf, len - tailLen);
+//            System.out.println("traceId count:" + testTraceIdSet.size());
+//            System.out.println(" hash count:" + testHashSet.size());
+//            System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
+//            testHashSet.clear();
+//            testTraceIdSet.clear();
+//            testErrorTraceIdSet.clear();
+        } while (n != -1);
+        System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
+//        System.out.println("mine line len is :" + testMinLineLen);
+        System.out.println("time=" + (System.currentTimeMillis() - start_time));
+        System.out.println("count=" + testTotalCount);
     }
 
-    private void handleErrorTraceId(int start, int end, Packet packet) {
-        long startTime = System.currentTimeMillis();
-        //处理本地错误traceId
-        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
-        realHandleErrorTraceId(start, end, packet);
+    private static void handleData(byte[] buf, int len) {
+        int i = 0;
+        do {
+//            testTraceIdSet.add(new String(buf, i, 16));
+            int s = i;
 
-        //处理其他节点发送过来的traceId
-        packet = Filter.getFilter().getRemoteErrorPacket();
-        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
-        realHandleErrorTraceId(start, end, packet);
-        System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
-    }
+            //计算索引
+            int index = (buf[i] + (buf[i + 1] << 3) + (buf[i + 2] << 6) + (buf[i + 3] << 9) + (buf[i + 4] << 12)) & 0XFFFF;
+//            testHashSet.add(index);
 
-    private void realHandleErrorTraceId(int start, int end, Packet packet) {
-        System.out.println("traceIds number=" + (packet.getLen() - Packet.P_DATA) / 16);
-        //处理本地错误traceId
-        byte[] bs = packet.getBs();
-        for (int i = Packet.P_DATA; i < packet.getLen(); i += 16) {
-            byte traceId[] = new byte[16];
-            System.arraycopy(bs, i, traceId, 0, 16);
-            Packet logsPacket = Container.selectByTraceId(start, end, traceId);
-            if (logsPacket.getLen() == 21) {
-                emptyLogs++;
-            } else {
-                fullLogs++;
+
+            //获取一行数据
+            i += SKIP_LEN;
+            while (buf[i++] != '\n') ;//找到了换行符
+//            if (testMinLineLen > i - s) testMinLineLen = i - s;//统计最小长度
+            //判断是否有错
+            if (buf[i - 22] == '&' &&
+//                    buf[i - 21] == 'h' && buf[i - 20] == 't' && buf[i - 19] == 't' && buf[i - 18] == 'p' &&
+//                    buf[i - 17] == '.' && buf[i - 16] == 's' && buf[i - 15] == 't' && buf[i - 14] == 'a' &&
+//                    buf[i - 13] == 't' && buf[i - 12] == 'u' && buf[i - 11] == 's' &&
+//                    buf[i - 10] == '_' &&
+//                    buf[i - 9] == 'c' && buf[i - 8] == 'o' && buf[i - 7] == 'd' && buf[i - 6] == 'e' &&
+//                    buf[i - 5] == '=' &&
+//                    (buf[i - 4] != '2' || buf[i - 3] != '0' || buf[i - 2] != '0')
+                    buf[i - 4] != 2) {
+                testErrorTraceIdSet.add(new String(buf, s, 16));
+//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
+            } else if (buf[i - 9] == '&' &&
+//                    buf[i - 8] == 'e' && buf[i - 7] == 'r' &&
+//                    buf[i - 6] == 'r' && buf[i - 5] == 'o' &&
+//                    buf[i - 4] == 'r' && buf[i - 3] == '=' &&
+                    buf[i - 2] == '1') {
+                testErrorTraceIdSet.add(new String(buf, s, 16));
+//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
             }
-            Filter.getFilter().sendPacket(logsPacket);
-        }
+            testTotalCount++;
+        } while (i != len);
     }
-
-
 }
