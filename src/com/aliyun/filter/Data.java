@@ -23,7 +23,7 @@ public class Data implements Runnable {
     public static Data data = new Data();
     private int dataPort;
     private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    public static final int PER_HANDLE_PAGE_NUM = 2;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
     private long startTime;
     //用于存放错误的日志
     public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];

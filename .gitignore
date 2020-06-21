@@ -6,3 +6,4 @@ logs/
 out/
 src/META-INF/
 docker/*.jar
+docker/*.tar.gz
