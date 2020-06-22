@@ -18,7 +18,9 @@ public class Data {
     private static int tailLen = 0;//尾巴数据的长度
 
     private static int SKIP_LEN = 130;//每一行跳过长度 4G文件是trace1.data是133，trace2.data是131
-    private static int bucket[] = new int[0X10000];//64K 6.5万条
+
+    //    private static int bucket[] = new int[0X10000];
+    private static HashMap map = new HashMap();
 
 
     private static int testTotalCount = 0;//总行数
@@ -52,6 +54,8 @@ public class Data {
                 if (buf[len - 1 - tailLen] == '\n') break;
             }
             handleData(buf, len - tailLen);
+            map.clear();
+
 //            System.out.println("traceId count:" + testTraceIdSet.size());
 //            System.out.println(" hash count:" + testHashSet.size());
 //            System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
@@ -62,7 +66,7 @@ public class Data {
         System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
 //        System.out.println("mine line len is :" + testMinLineLen);
         System.out.println("time=" + (System.currentTimeMillis() - start_time));
-        System.out.println("count=" + testTotalCount);
+        System.out.println("total count=" + testTotalCount);
     }
 
     private static void handleData(byte[] buf, int len) {
@@ -72,10 +76,9 @@ public class Data {
             int s = i;
 
             //计算索引
-            int index = (buf[i] + (buf[i + 1] << 3) + (buf[i + 2] << 6) + (buf[i + 3] << 9) + (buf[i + 4] << 12)) & 0XFFFF;
+            int hash = (buf[i] + (buf[i + 1] << 3) + (buf[i + 2] << 6) + (buf[i + 3] << 9) + (buf[i + 4] << 12)) & 0XFFFF;
 //            testHashSet.add(index);
-
-
+//            bucket[index] = 1;
             //获取一行数据
             i += SKIP_LEN;
             while (buf[i++] != '\n') ;//找到了换行符
@@ -88,7 +91,7 @@ public class Data {
 //                    buf[i - 10] == '_' &&
 //                    buf[i - 9] == 'c' && buf[i - 8] == 'o' && buf[i - 7] == 'd' && buf[i - 6] == 'e' &&
 //                    buf[i - 5] == '=' &&
-//                    (buf[i - 4] != '2' || buf[i - 3] != '0' || buf[i - 2] != '0')
+//                    (buf[i - 4] != '2' || buf[i - 3] != '0' || buf[i - 2] != '0') &&
                     buf[i - 4] != 2) {
                 testErrorTraceIdSet.add(new String(buf, s, 16));
 //                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
@@ -100,6 +103,8 @@ public class Data {
                 testErrorTraceIdSet.add(new String(buf, s, 16));
 //                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
             }
+            map.put(hash, s, i - s);
+
             testTotalCount++;
         } while (i != len);
     }
