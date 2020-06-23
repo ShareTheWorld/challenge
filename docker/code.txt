@@ -41,3 +41,16 @@
             }
         }
 
+
+
+ String line = new String(data, s, i - s - 1);
+            String arr[] = line.split("\\|");
+            try {
+                String query = arr[8];
+                String item[] = query.split("&");
+                for (int j = 0; j < item.length; j++) {
+                    params.add(item[j]);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }

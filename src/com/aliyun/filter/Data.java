@@ -2,13 +2,10 @@ package com.aliyun.filter;
 
 import com.aliyun.common.Const;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -121,20 +118,7 @@ public class Data {
 //                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
             }
             buf.put(hash, s, i - s);
-            String line = new String(data, s, i - s - 1);
-            String arr[] = line.split("\\|");
-            try {
-                String query = arr[8];
-                String item[] = query.split("&");
-                for (int j = 0; j < item.length; j++) {
-                    params.add(item[j]);
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-//            if(buf[s]){
-//
-//            }
+
 
             testTotalCount++;
         } while (i != len);
