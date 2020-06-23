@@ -41,7 +41,6 @@ public abstract class Server {
         socket.close();
     }
 
-
     protected void handleInputStream(Socket socket) {
         InputStream in = null;
         try {

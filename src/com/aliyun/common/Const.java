@@ -11,5 +11,5 @@ public class Const {
 
     public static int listen_port = 8000;//监听端口
     public static int data_port = 0;//数据端口
-    public static int who = WHO_FILTER_0;//代表是那个节点
+    public static byte who = WHO_FILTER_0;//代表是那个节点
 }

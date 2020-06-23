@@ -33,7 +33,7 @@ public class Data {
     public static void start() throws Exception {
         long start_time = System.currentTimeMillis();
 //        InputStream in = new FileInputStream("/Users/fht/d_disk/chellenger/data3/trace1.data");
-        
+
         String path = "http://127.0.0.1:" + data_port + "/trace" + (Const.who + 1) + ".data ";
         System.out.println(path);
         URL url = new URL(path);
@@ -118,8 +118,6 @@ public class Data {
 //                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
             }
             buf.put(hash, s, i - s);
-
-
             testTotalCount++;
         } while (i != len);
     }

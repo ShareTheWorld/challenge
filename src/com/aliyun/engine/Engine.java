@@ -34,6 +34,11 @@ public class Engine extends Server {
             }
         }
         System.out.println("stop tcp listener port " + listen_port);
+
+        //当结束监听的时候，说明获取到数据了，通知节点启动
+        Packet packet = new Packet(1, who, Packet.TYPE_START);
+        sendPacket(packet, out0);
+        sendPacket(packet, out1);
     }
 
 
@@ -41,4 +46,15 @@ public class Engine extends Server {
 
     }
 
+
+    public void sendPacket(Packet packet, OutputStream out) {
+        try {
+            int len = packet.getLen();
+            byte bs[] = packet.getBs();
+            out.write(bs, 0, len);
+            out.flush();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 }

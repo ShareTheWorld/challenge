@@ -33,11 +33,13 @@ public class Filter extends Server {
     public void handleTcpSocket(Socket socket, int port) throws Exception {
         System.out.println("not tcp connection in filter node ， it only have http! ");
     }
+    
 
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
 //            setRemoteErrorPacket(packet);
         } else if (packet.getType() == Packet.TYPE_START) {//启动数据处理接口
+            System.out.println("receive start packet");
             try {
                 Data.start();
             } catch (Exception e) {
