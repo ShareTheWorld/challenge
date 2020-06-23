@@ -22,7 +22,7 @@ public class Main {
             new Engine().run();
         } else {
             if (listen_port == 8001) who = WHO_FILTER_1;
-//            Data.start();
+            Data.start();
 //            who = WHO_FILTER_1;
 //            Data.start();
             new Filter().run();
