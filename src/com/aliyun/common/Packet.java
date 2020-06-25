@@ -3,7 +3,7 @@ package com.aliyun.common;
 public class Packet {
     public static final byte TYPE_START = 1;
     public static final byte TYPE_TRACE_ID = 2;//traceId
-    public static final byte TYPE_MULTI_TRACE_ID = 3;//traceId traceId traceId
+    public static final byte TYPE_MULTI_TRACE_ID = 3;//pageIndex traceId traceId traceId
     public static final byte TYPE_LOG = 4;//len log
     public static final byte TYPE_MULTI_LOG = 5;//len log len log len log
     public static final byte TYPE_END = 0;
@@ -12,9 +12,10 @@ public class Packet {
     public static final int P_LEN = 0;
     public static final int P_WHO = 3;
     public static final int P_TYPE = 4;
-    public static final int P_DATA = 5;
+    public static final int P_PAGE = 5;
+    public static final int P_DATA = 7;
     private byte bs[];//[len0,len1,len2,who,type,data] data=len data len data
-    private int len = 5;//代表bs的使用长度
+    private int len = 7;//代表bs的使用长度
     public boolean isHandle;//是否处理，主要是在计算校验和的时候需要用一下，不符合设计规范，主要是为了提高速度
 
     public Packet(int k) {
@@ -53,6 +54,11 @@ public class Packet {
         return bs[P_TYPE];
     }
 
+    public int getPage() {
+        int page = ((bs[P_PAGE + 0] & 0XFF) << 8) + (bs[P_PAGE + 1] & 0XFF);
+        return page;
+    }
+
     public byte[] getBs() {
         //将长度写入到对应的位置
         bs[P_LEN + 0] = (byte) ((len >> 16) & 0XFF);
@@ -73,7 +79,7 @@ public class Packet {
         bs[P_LEN + 2] = 0;
         this.bs[P_WHO] = who;
         this.bs[P_TYPE] = type;
-        len = 5;
+        len = 7;
     }
 
 
@@ -91,15 +97,24 @@ public class Packet {
         return this;
     }
 
+    /**
+     * 只用了两字节
+     */
+    public Packet writePage(int page) {
+        this.bs[P_PAGE + 0] = (byte) ((page >> 8) & 0XFF);
+        this.bs[P_PAGE + 1] = (byte) (page & 0XFF);
+        return this;
+    }
+
 
     @Override
     public int hashCode() {
-        if (len == 5) return 0;
-        //对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
-        int index1 = (bs[5] << 12) + (bs[6] << 8) + (bs[7] << 4) + (bs[8]);// + (data[++s] << 16) + (data[++s] << 20));
-        int index2 = (bs[9] << 12) + (bs[10] << 8) + (bs[11] << 4) + (bs[12]);// + (data[++s] << 16) + (data[++s] << 20));
-        return (index1 ^ index2) & 0xFFFF;
-//        return super.hashCode();
+//        if (len == 7) return 0;
+//        //对于TYPE_MULTI_LOG 类型的数据是从这个位置开始存放traceId的
+//        int index1 = (bs[5] << 12) + (bs[6] << 8) + (bs[7] << 4) + (bs[8]);// + (data[++s] << 16) + (data[++s] << 20));
+//        int index2 = (bs[9] << 12) + (bs[10] << 8) + (bs[11] << 4) + (bs[12]);// + (data[++s] << 16) + (data[++s] << 20));
+//        return (index1 ^ index2) & 0xFFFF;
+        return 0;
     }
 
     @Override
@@ -116,6 +131,7 @@ public class Packet {
     @Override
     public String toString() {
         int who = 8000 + bs[P_WHO];
+        int page = getPage();
 
         String type = "start";
         switch (bs[P_TYPE]) {
@@ -143,6 +159,7 @@ public class Packet {
             StringBuilder sb = new StringBuilder("total len:" + len +
                     ", who:" + who +
                     ", type:" + type +
+                    ", page:" + page +
                     ", data len=" + (len - P_DATA) +
                     ", traceId=" + new String(bs, P_DATA, TRACE_ID_LEN) +
                     ", data=\n");
@@ -157,6 +174,7 @@ public class Packet {
             return "total len:" + len +
                     ", who:" + who +
                     ", type:" + type +
+                    ", page:" + page +
                     ", len=" + (len - P_DATA) +
                     ", data=\n" + new String(bs, P_DATA, len - P_DATA);
         }

@@ -22,10 +22,9 @@ public class Data {
     private static int FIND_ERROR_SKIP_LEN = 100;//发现换行符跳过的长度 4G文件是trace1.data是133，trace2.data是131
 
     //    private static int bucket[] = new int[0X10000];
-    private static Buffer buf = new Buffer();
-
-    private static Packet errorPacket = new Packet(1, who, Packet.TYPE_MULTI_TRACE_ID);
-
+//    private static Buffer pre = new Buffer();//上一个
+//    private static Buffer buf = new Buffer();//当前
+    private static int page;//表示多少页
 
     private static int testTotalCount = 0;//总行数
     public static Set<String> testErrorTraceIdSet = new HashSet<>();//错误traceId
@@ -33,7 +32,7 @@ public class Data {
     public static Set<Integer> testHashSet = new HashSet<>(10000);//哈希数
     public static int testMinLineLen = 1000;//行的最小长度
     public static int testMaxLineLen = 0;//行的最小长度
-    public static Set<String> params = new HashSet<>();
+    public static Set<String> testParams = new HashSet<>();
 
     public static void start() {
         try {
@@ -55,9 +54,14 @@ public class Data {
 
         int n, len;
         byte[] data;
-        int pageIndex = 0;
+        Buffer buf;
         do {
-//            pageIndex++;
+//            System.out.println("read data, page =" + page);
+            //获取一个buf
+            buf = Container.get(page);
+            buf.clear();
+            buf.setPage(page);
+
             data = buf.data;
             //将尾巴复制到缓冲区中
             System.arraycopy(tail, 0, data, 0, tailLen);
@@ -69,7 +73,6 @@ public class Data {
                 if (len == Buffer.LEN) break;
             }
 
-
             //反向找到换行符
             for (tailLen = 0; tailLen < 1000; tailLen++) {
                 if (data[len - 1 - tailLen] == '\n') {//
@@ -77,12 +80,13 @@ public class Data {
                     break;
                 }
             }
-            buf.clear();
-            buf.len = len - tailLen;
-            handleData(data, len - tailLen);
-            filter.sendPacket(errorPacket);
-            errorPacket.reset(who, Packet.TYPE_MULTI_TRACE_ID);
 
+            //计算长度
+            buf.len = len - tailLen;
+
+            asyncHandleData(buf);//异步处理数据
+
+            page++;
 //            System.out.println("traceId count:" + testTraceIdSet.size());
 //            System.out.println(" hash count:" + testHashSet.size());
 //            System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
@@ -90,36 +94,48 @@ public class Data {
 //            testTraceIdSet.clear();
 //            testErrorTraceIdSet.clear();
         } while (n != -1);
+
 //        System.out.println(map);
         System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
         System.out.println("min line len is :" + testMinLineLen + ", max line len is :" + testMaxLineLen);
         System.out.println("time=" + (System.currentTimeMillis() - start_time));
         System.out.println("total count=" + testTotalCount);
-        System.out.println("params size=" + params.size());
-        System.out.println(params);
+        System.out.println("page count=" + page);
+        System.out.println("params size=" + testParams.size());
+        System.out.println(testParams);
     }
 
-    private static void handleData(byte[] data, int len) {
+    public static void asyncHandleData(Buffer buf) {
+        new Thread(() -> handleData(buf)).start();
+    }
+
+    private static void handleData(Buffer buf) {
+        byte[] data = buf.data;
         int i = 0;
         do {
-//            testTraceIdSet.add(new String(buf, i, 16));
 
             //计算索引
             int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
 //            testHashSet.add(index);
 
             //获取一行数据
-            int l = getLine(data, i);
+            int l = getLine(data, i, buf.packet);
             buf.put(hash, i, l);
             i = i + l;
 
-//            if (testMinLineLen > l) testMinLineLen = l;//统计最小长度
-//            if (testMaxLineLen < l) testMaxLineLen = l;//统计最小长度
-//            testTotalCount++;
-        } while (i != len);
+            if (testMinLineLen > l) testMinLineLen = l;//统计最小长度
+            if (testMaxLineLen < l) testMaxLineLen = l;//统计最小长度
+            testTotalCount++;
+        } while (i != buf.len);
+
+        //发送错误的traceId到engine
+//        filter.sendPacket(buf.packet);
+
+        //处理完了，将数据的状态设置为1
+        Container.finishIndex(buf);//完成索引创建
     }
 
-    public static int getLine(byte d[], int s) {
+    public static int getLine(byte d[], int s, Packet packet) {
         int i = s;
         i += FIND_CR_SKIP_LEN;
         boolean isError = false;
@@ -143,9 +159,8 @@ public class Data {
             }
         }
         if (isError) {
-            errorPacket.write(d, s, 16);
-            testErrorTraceIdSet.add(new String(d, s, 16));
-//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(data, s, i - s));
+            packet.write(d, s, 16);
+//            System.out.print(testErrorTraceIdSet.size() + "\t" + new String(data, s, i - s));
         }
         return i - s;
     }

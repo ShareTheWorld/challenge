@@ -16,4 +16,6 @@ public class Const {
     public static byte who = WHO_FILTER_0;//代表是那个节点
 
     public static Filter filter;
+
+
 }
