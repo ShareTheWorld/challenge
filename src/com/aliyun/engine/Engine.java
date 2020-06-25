@@ -44,7 +44,9 @@ public class Engine extends Server {
 
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
-//            System.out.println(packet);
+//            System.out.println("send multi trace id to filter " + packet.getWho());
+            if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
+            else sendPacket(packet, out0);
         } else {
             System.out.println("not handle packet");
         }

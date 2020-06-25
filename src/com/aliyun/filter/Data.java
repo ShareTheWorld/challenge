@@ -35,7 +35,15 @@ public class Data {
     public static int testMaxLineLen = 0;//行的最小长度
     public static Set<String> params = new HashSet<>();
 
-    public static void start() throws Exception {
+    public static void start() {
+        try {
+            start0();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void start0() throws Exception {
         long start_time = System.currentTimeMillis();
 //        InputStream in = new FileInputStream("/Users/fht/d_disk/chellenger/data/trace1.data");
 

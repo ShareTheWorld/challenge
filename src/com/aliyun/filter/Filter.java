@@ -18,7 +18,9 @@ public class Filter extends Server {
 
 
     public void start() throws Exception {
+        //连接到engine
         Socket s = connectEngine();
+
         System.out.println("start tcp listener port " + listen_port);
         server = new ServerSocket(listen_port);
         while (data_port == 0) {//拿到端口就可以不用再监听了
@@ -33,18 +35,15 @@ public class Filter extends Server {
     public void handleTcpSocket(Socket socket, int port) throws Exception {
         System.out.println("not tcp connection in filter node ， it only have http! ");
     }
-    
+
 
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
 //            setRemoteErrorPacket(packet);
+//            System.out.println(packet);
         } else if (packet.getType() == Packet.TYPE_START) {//启动数据处理接口
             System.out.println("receive start packet");
-            try {
-                Data.start();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+            new Thread(() -> Data.start()).start();
         } else {
             System.out.println(packet);
         }
