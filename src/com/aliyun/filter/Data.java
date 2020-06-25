@@ -113,13 +113,12 @@ public class Data {
         byte[] data = buf.data;
         int i = 0;
         do {
-
             //计算索引
             int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
 //            testHashSet.add(index);
 
             //获取一行数据
-            int l = getLine(data, i, buf.packet);
+            int l = getLine(data, i, buf.errPkt);
             buf.put(hash, i, l);
             i = i + l;
 

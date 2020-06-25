@@ -8,7 +8,6 @@ public class Container {
         while (buf.status != 0) {
             try {
                 Container.class.wait();
-                break;
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -18,7 +17,12 @@ public class Container {
     }
 
     public static synchronized void finishIndex(Buffer buf) {
+        buf.select(buf.errPkt);
         buf.status = 0;
         Container.class.notifyAll();
+    }
+
+    public void select() {
+
     }
 }

@@ -2,6 +2,7 @@ package com.aliyun.filter;
 
 import com.aliyun.common.Packet;
 
+import static com.aliyun.common.Const.filter;
 import static com.aliyun.common.Const.who;
 
 public class Buffer {
@@ -15,12 +16,12 @@ public class Buffer {
     public int p;//表示当前link取到第几个位置了
     //0表示是空的，可以再次使用，1表示建立完索引
     public int status;
-    public Packet packet = new Packet(1, who, Packet.TYPE_MULTI_TRACE_ID);//用于存放错误,可以放64个错误
+    public Packet errPkt = new Packet(1, who, Packet.TYPE_MULTI_TRACE_ID);//用于存放错误,可以放64个错误
 
 
     public void setPage(int page) {
         this.page = page;
-        packet.writePage(page);
+        errPkt.writePage(page);
     }
 
     public void put(int hash, int s, int len) {
@@ -31,13 +32,10 @@ public class Buffer {
             tmp[0][0] = hash;
             tmp[1][0] = 1;
         }
-        try {
-            tmp[0][tmp[1][0]] = s;
-            tmp[1][tmp[1][0]] = len;
-            tmp[1][0]++;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //tmp[1][0]存储的是有多长
+        tmp[0][tmp[1][0]] = s;
+        tmp[1][tmp[1][0]] = len;
+        tmp[1][0]++;
     }
 
     public void clear() {
@@ -53,8 +51,53 @@ public class Buffer {
         p = 0;
 
         //清除错误
-        packet.reset(who, Packet.TYPE_MULTI_TRACE_ID);
+        errPkt.reset(who, Packet.TYPE_MULTI_TRACE_ID);
     }
+
+
+    public void select(Packet packet) {
+//        byte[] bs = packet.getBs();
+//        int len = packet.getLen();
+//        for (int i = Packet.P_DATA; i < len; i += 16) {
+//            select(bs, i);
+//        }
+    }
+
+    Packet pkt = new Packet(16, who, Packet.TYPE_MULTI_LOG);
+
+    public void select(byte bs[], int s) {
+        pkt.reset(who, Packet.TYPE_MULTI_LOG);
+        pkt.writePage(page);
+        pkt.write(bs, s, 16);//需要先写入一个traceId
+        //找到hash所在位置
+        int hash = (bs[s] + (bs[s + 1] << 3) + (bs[s + 2] << 6) + (bs[s + 3] << 9) + (bs[s + 4] << 12)) & 0XFFFF;
+        int link[][] = bucket[hash];
+        if (link == null) {
+            //TODO 需要发送pkt
+//            filter.sendPacket(pkt);
+            return;
+        }
+        int count = link[1][0];
+        for (int i = 1; i <= count; i++) {
+            //start=link[0][i] len=link[1][i]
+            boolean b = equals(data, link[0][i], bs, s);
+            if (b)
+                pkt.writeWithDataLen(data, link[0][i], link[1][i]);
+        }
+        System.out.println(pkt);
+
+    }
+
+    /**
+     * 比较两个byte是否相等
+     */
+    public static boolean equals(byte data[], int ds, byte key[], int ks) {
+        for (int i = 0; i < 16; i++) {
+            if (data[ds + i] != key[ks + i]) return false;
+        }
+        return true;
+    }
+
 
     public static void main(String args[]) {
         Buffer map = new Buffer();

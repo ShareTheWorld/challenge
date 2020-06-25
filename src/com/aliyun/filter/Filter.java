@@ -38,6 +38,7 @@ public class Filter extends Server {
 
 
     public void handlePacket(Packet packet) {
+        
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
 //            setRemoteErrorPacket(packet);
 //            System.out.println(packet);
