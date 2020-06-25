@@ -54,3 +54,51 @@
             } catch (Exception e) {
                 e.printStackTrace();
             }
+
+
+//            //判断是否有错
+//            if (data[i - 22] == '&' &&
+//                    buf[i - 21] == 'h' && buf[i - 20] == 't' && buf[i - 19] == 't' && buf[i - 18] == 'p' &&
+//                    buf[i - 17] == '.' && buf[i - 16] == 's' && buf[i - 15] == 't' && buf[i - 14] == 'a' &&
+//                    buf[i - 13] == 't' && buf[i - 12] == 'u' && buf[i - 11] == 's' &&
+//                    buf[i - 10] == '_' &&
+//                    buf[i - 9] == 'c' && buf[i - 8] == 'o' && buf[i - 7] == 'd' && buf[i - 6] == 'e' &&
+//                    buf[i - 5] == '=' &&
+//                    (buf[i - 4] != '2' || buf[i - 3] != '0' || buf[i - 2] != '0') &&
+//                    data[i - 4] != 2) {
+//                testErrorTraceIdSet.add(new String(buf, s, 16));
+//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
+//            } else if (data[i - 9] == '&' &&
+//                    buf[i - 8] == 'e' && buf[i - 7] == 'r' &&
+//                    buf[i - 6] == 'r' && buf[i - 5] == 'o' &&
+//                    buf[i - 4] == 'r' && buf[i - 3] == '=' &&
+//                    data[i - 2] == '1') {
+//                testErrorTraceIdSet.add(new String(buf, s, 16));
+//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
+//            }
+
+
+ while (data[i++] != '\n') {
+//                if (data[i - 1] == '&') {
+                if (data[i] == 'h' &&
+//                        data[i + 1] == 't' && data[i + 2] == 't' && data[i + 3] == 'p' &&
+//                        data[i + 4] == '.' && data[i + 5] == 's' && data[i + 6] == 't' && data[i + 7] == 'a' &&
+//                        data[i + 8] == 't' && data[i + 9] == 'u' &&
+//                        data[i + 10] == 's' &&
+                        data[i + 11] == '_' &&
+//                        data[i + 12] == 'c' && data[i + 13] == 'o' && data[i + 14] == 'd' && data[i + 15] == 'e' &&
+//                        data[i + 16] == '=' &&
+                        (data[i + 17] != '2' || data[i + 18] != '0' || data[i + 19] != '0')
+                ) {
+                    isError = true;
+                } else if (
+                        data[i] == 'e' &&
+//                                data[i + 1] == 'r' &&
+//                        data[i + 2] == 'r' && data[i + 3] == 'o' &&
+//                        data[i + 4] == 'r' &&
+                                data[i + 5] == '=' &&
+                                data[i + 6] == '1') {
+                    isError = true;
+                }
+//                }
+            }

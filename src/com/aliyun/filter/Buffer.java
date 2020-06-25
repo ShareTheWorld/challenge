@@ -1,7 +1,8 @@
 package com.aliyun.filter;
 
 public class Buffer {
-    public byte[] data = new byte[8 * 1024 * 1024];//存放数据的缓冲区，太大了会导致缓存页不停的失效
+    public static final int LEN = 8 * 1024 * 1024;//存放数据的缓冲区，太大了会导致缓存页不停的失效
+    public byte[] data = new byte[8 * 1024 * 1024 + 1024];//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int len = 0;
     public int bucket[][][] = new int[0X10000][][];//64K 6.5万条  256K
     //每页：4000>不同的traceId，100>重复的traceId的最大数，2表示开始位置和长度  a=4000,b=100,c=2

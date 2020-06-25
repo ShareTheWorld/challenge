@@ -10,7 +10,7 @@ public class Main {
     public static void main(String args[]) throws Exception {
         System.out.println("load Data " + Data.class);
         long startTime = System.currentTimeMillis();
-        listen_port = 8002;
+        listen_port = 8000;
         try {
             listen_port = Integer.valueOf(args[0]);
         } catch (Exception e) {
@@ -20,9 +20,10 @@ public class Main {
             new Engine().start();
         } else {
             if (listen_port == 8001) who = WHO_FILTER_1;
-//            Data.start();
-//            who = WHO_FILTER_1;
-//            Data.start();
+            data_port = 7000;
+            Data.start();
+            who = WHO_FILTER_1;
+            Data.start();
             Filter filter = new Filter();
             filter.start();
         }
