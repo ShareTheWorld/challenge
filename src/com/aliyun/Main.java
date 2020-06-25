@@ -20,11 +20,11 @@ public class Main {
             new Engine().start();
         } else {
             if (listen_port == 8001) who = WHO_FILTER_1;
-            data_port = 7000;
-            Data.start();
-            who = WHO_FILTER_1;
-            Data.start();
-            Filter filter = new Filter();
+//            data_port = 7000;
+//            Data.start();
+//            who = WHO_FILTER_1;
+//            Data.start();
+            filter = new Filter();
             filter.start();
         }
         System.out.println("total run time=" + (System.currentTimeMillis() - startTime));

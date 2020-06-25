@@ -1,6 +1,7 @@
 package com.aliyun.filter;
 
 import com.aliyun.common.Const;
+import com.aliyun.common.Packet;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -9,7 +10,7 @@ import java.net.URL;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.aliyun.common.Const.data_port;
+import static com.aliyun.common.Const.*;
 
 public class Data {
     //8M 4万条，去掉重复过后是2100条无重复的traceId
@@ -22,6 +23,8 @@ public class Data {
 
     //    private static int bucket[] = new int[0X10000];
     private static Buffer buf = new Buffer();
+
+    private static Packet errorPacket = new Packet(1, who, Packet.TYPE_MULTI_TRACE_ID);
 
 
     private static int testTotalCount = 0;//总行数
@@ -69,6 +72,8 @@ public class Data {
             buf.clear();
             buf.len = len - tailLen;
             handleData(data, len - tailLen);
+            filter.sendPacket(errorPacket);
+            errorPacket.reset(who, Packet.TYPE_MULTI_TRACE_ID);
 
 //            System.out.println("traceId count:" + testTraceIdSet.size());
 //            System.out.println(" hash count:" + testHashSet.size());
@@ -90,72 +95,50 @@ public class Data {
         int i = 0;
         do {
 //            testTraceIdSet.add(new String(buf, i, 16));
-            int s = i;
 
             //计算索引
             int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
 //            testHashSet.add(index);
-//            bucket[index] = 1;
+
             //获取一行数据
-            i += FIND_CR_SKIP_LEN;
-            boolean isError = false;
+            int l = getLine(data, i);
+            buf.put(hash, i, l);
+            i = i + l;
 
-            for (; ; i++) {
-                //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
-                if (data[i] == '=') {
-//                count[data[i + 2]]++;
-                    //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
-                    //http.status_code=200
-                    if (data[i - 5] == '_' && (data[i + 1] != '2' || data[i + 2] != '0' || data[i + 3] != '0')
-                            && data[i - 16] == 'h' && data[i - 15] == 't' && data[i - 14] == 't' && data[i - 13] == 'p'
-                            && data[i - 12] == '.' && data[i - 11] == 's' && data[i - 10] == 't' && data[i - 9] == 'a'
-                            && data[i - 8] == 't' && data[i - 7] == 'u' && data[i - 6] == 's'
-                            && data[i - 4] == 'c' && data[i - 3] == 'o' && data[i - 2] == 'd' && data[i - 1] == 'e') {
-                        isError = true;
-                    } else if (data[i + 1] == '1' && data[i - 5] == 'e' && data[i - 4] == 'r' && data[i - 3] == 'r' && data[i - 2] == 'o'
-                            && data[i - 1] == 'r') {
-                        isError = true;
-                    }
-                } else if (data[i] == '\n') {
-                    i++;
-                    break;
-                }
-            }
-            buf.put(hash, s, i - s);
-
-            if (testMinLineLen > i - s) testMinLineLen = i - s;//统计最小长度
-            if (testMaxLineLen < i - s) testMaxLineLen = i - s;//统计最小长度
-            if (isError) {
-                testErrorTraceIdSet.add(new String(data, s, 16));
-//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(data, s, i - s));
-
-            }
-            testTotalCount++;
+//            if (testMinLineLen > l) testMinLineLen = l;//统计最小长度
+//            if (testMaxLineLen < l) testMaxLineLen = l;//统计最小长度
+//            testTotalCount++;
         } while (i != len);
     }
 
-    private static boolean isError(byte[] d, final int s, int e) {
-        for (; e > s; e--) {
-            //判断是否有错
-            if ((d[e] == '&' || d[e] == '\n') && (d[e - 22] == '&' || d[e - 22] == '|')
-                    && (d[e - 4] == '4' || d[e - 4] == '5')
-            ) {
-//                testErrorTraceIdSet.add(new String(d, s, 16));
-//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(d, i - 25, 25));
-//                System.out.println(new String(d, e - 22, 22));
-                return true;
-            } else if (
-                    d[e - 8] == 'e' && d[e - 7] == 'r' &&
-                            d[e - 6] == 'r' && d[e - 5] == 'o' &&
-                            d[e - 4] == 'r' && d[e - 3] == '=' &&
-                            d[e - 2] == '1') {
-//                System.out.println(new String(d, i - 9, 9));
-
-//                testErrorTraceIdSet.add(new String(d, s, 16));
-//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(buf, i - 25, 25));
-                return true;
+    public static int getLine(byte d[], int s) {
+        int i = s;
+        i += FIND_CR_SKIP_LEN;
+        boolean isError = false;
+        for (; ; i++) {
+            //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
+            if (d[i] == '=') {
+                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
+                if (d[i - 5] == '_' && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')
+                        && d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
+                        && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
+                        && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's'
+                        && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e') {
+                    isError = true;
+                } else if (d[i + 1] == '1' && d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
+                        && d[i - 1] == 'r') {
+                    isError = true;
+                }
+            } else if (d[i] == '\n') {
+                i++;
+                break;
             }
         }
-        return false;
+        if (isError) {
+            errorPacket.write(d, s, 16);
+            testErrorTraceIdSet.add(new String(d, s, 16));
+//                System.out.print(testErrorTraceIdSet.size() + "\t" + new String(data, s, i - s));
+        }
+        return i - s;
     }
 }

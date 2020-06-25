@@ -43,7 +43,11 @@ public class Engine extends Server {
 
 
     public void handlePacket(Packet packet) {
-
+        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
+//            System.out.println(packet);
+        } else {
+            System.out.println("not handle packet");
+        }
     }
 
 

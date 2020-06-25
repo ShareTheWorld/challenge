@@ -67,7 +67,7 @@ public class Packet {
         return this;
     }
 
-    public void write(byte who, byte type) {
+    public void reset(byte who, byte type) {
         bs[P_LEN + 0] = 0;
         bs[P_LEN + 1] = 0;
         bs[P_LEN + 2] = 0;
