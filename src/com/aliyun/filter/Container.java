@@ -48,6 +48,7 @@ public class Container {
     }
 
     public static synchronized Page getHandlePage(int i) {
+        if (i >= total_page_count) return null;
         Page page = handlePages[i % len];
         while (page == null) {
             try {
@@ -104,16 +105,19 @@ public class Container {
     public static void handleErrorPacket() {
         int pageIndex = 0;
         Page page;
-        while (true) {
+        while (pageIndex < total_page_count) {
+            System.out.println("handle error, page=" + pageIndex + ", totalPageCount=" + total_page_count);
             //处理本本地的错误
-            for (int i = 0; i < PER_HANDLE_PAGE_NUM; i++) {
+            for (int i = 0; i < PER_HANDLE_PAGE_NUM + 1; i++) {
                 page = getHandlePage(pageIndex + i);
+                if (page == null) break;
                 page.select(page.errPkt);
             }
 
             //处理远程的错误
             for (int i = 0; i < PER_HANDLE_PAGE_NUM; i++) {
                 packet = filter.getPacket(pageIndex + i);
+                if (packet == null) break;
                 page = getHandlePage(pageIndex + i);
                 page.select(packet);
             }
@@ -126,11 +130,10 @@ public class Container {
             }
             pageIndex += PER_HANDLE_PAGE_NUM;
         }
-//        //计算与之对应的页
-//        int pageIndex = packet.getPage();
-//        Page page = getHandlePage(pageIndex);
-//        page.select(packet);
-//        moveHandleToEmpty(pageIndex);
+
+        Packet endPacket = new Packet(1, who, Packet.TYPE_END);
+        filter.sendPacket(endPacket);
+        System.out.println("----------end----------end----------end----------end----------");
     }
 
     /**

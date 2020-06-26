@@ -24,6 +24,7 @@ public class Filter extends Server {
     private Socket socket;
     private OutputStream out;
     private static Packet[] remoteErrPkts = new Packet[1500];
+    private static int remotePageCount = 10000;
 
     public synchronized void putPacket(Packet p) {
         remoteErrPkts[p.getPage()] = p;
@@ -31,6 +32,7 @@ public class Filter extends Server {
     }
 
     public synchronized Packet getPacket(int i) {
+        if (i >= remotePageCount) return null;
         while (remoteErrPkts[i] == null) {
             try {
                 wait();
@@ -66,8 +68,9 @@ public class Filter extends Server {
             putPacket(packet);
         } else if (packet.getType() == Packet.TYPE_START) {
             new Thread(() -> Data.start()).start();
-        } else {
+        } else if (packet.getType() == Packet.TYPE_READ_END) {
             System.out.println(packet);
+            remotePageCount = packet.getPage();
         }
     }
 

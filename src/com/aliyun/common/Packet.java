@@ -7,6 +7,8 @@ public class Packet {
     public static final byte TYPE_LOG = 4;//len log
     public static final byte TYPE_MULTI_LOG = 5;//len log len log len log
     public static final byte TYPE_END = 0;
+    public static final byte TYPE_READ_END = 10;//发送traceId结束
+
     public static final byte TRACE_ID_LEN = 16;
 
     public static final int P_LEN = 0;

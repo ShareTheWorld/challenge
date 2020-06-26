@@ -105,7 +105,8 @@ public class Engine extends Server {
      */
     @Override
     public void handlePacket(Packet packet) {
-        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
+        //如果是traceId或者读取结束，就发送给filter
+        if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID || packet.getType() == Packet.TYPE_READ_END) {
 //            System.out.println("send multi trace id to filter " + packet.getWho());
             System.out.println(packet);
             if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
@@ -113,11 +114,13 @@ public class Engine extends Server {
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
             synchronized (this) {//因为会有两个线程调用，所以需要同步
 //                calcCheckSum(packet); TODO 待计算
+                System.out.println(packet);
             }
         } else if (packet.getType() == Packet.TYPE_END) {
             synchronized (Engine.class) {
                 endFilterNum++;
                 if (endFilterNum >= 2) {
+                    System.out.println("----------end----------end----------end----------end----------");
                     sendResult();
                 }
             }

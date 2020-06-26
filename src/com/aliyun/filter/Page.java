@@ -131,7 +131,7 @@ public class Page {
         }
 
         //TODO 发送packet
-//        filter.sendPacket(pkt);
+        filter.sendPacket(pkt);
 //        System.out.println(pkt);
 
     }

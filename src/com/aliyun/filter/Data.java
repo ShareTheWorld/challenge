@@ -19,7 +19,6 @@ import static com.aliyun.common.Const.*;
  */
 public class Data {
     public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
-    private static int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
     private static long startTime;
     //用于存放错误的日志
 
@@ -69,7 +68,7 @@ public class Data {
             }
 
             //反向找到换行符
-            for (tailLen = 0; tailLen < 1000; tailLen++) {
+            for (tailLen = 0; tailLen < 1024; tailLen++) {
                 if (data[len - 1 - tailLen] == '\n') {//
                     System.arraycopy(data, len - tailLen, tail, 0, tailLen);
                     break;
@@ -83,7 +82,10 @@ public class Data {
             asyncHandleData(page);
             pageIndex++;
         } while (n != -1);
-        totalPageCount = pageIndex;
+        total_page_count = pageIndex;
+        Packet readEndPacket = new Packet(1, who, Packet.TYPE_READ_END);
+        readEndPacket.writePage(pageIndex);
+        filter.sendPacket(readEndPacket);
 
         System.out.println("read data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 
