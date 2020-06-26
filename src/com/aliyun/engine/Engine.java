@@ -1,5 +1,6 @@
 package com.aliyun.engine;
 
+import static com.aliyun.common.Const.*;
 
 import com.aliyun.Main;
 import com.aliyun.common.MD5;
@@ -20,6 +21,10 @@ import java.util.*;
  * 接受上报的traceId错误日志
  */
 public class Engine extends Server {
+    private OutputStream out0;
+    private OutputStream out1;
+    protected ServerSocket server;
+
     private int resultReportPort;//结果上报端口
     private MD5 md5 = new MD5();
 
@@ -30,7 +35,7 @@ public class Engine extends Server {
 
 
     //错误的数据差不多有两万个
-    private Map<Packet, Packet> map = new HashMap<>(20000);
+    private Map<Packet, Packet> map = new HashMap<>(30000);
     private int endFilterNum = 0;//结束的packet的个数
 
     //错误统计
@@ -39,8 +44,7 @@ public class Engine extends Server {
     public static long startTime = 0;
 
 
-    public Engine(int port) {
-        super(port);
+    public Engine() {
         try {
             byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
                     "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
@@ -70,24 +74,31 @@ public class Engine extends Server {
         }).start();
     }
 
-    private OutputStream out0;
-    private OutputStream out1;
-
-    /**
-     * 处理tcp链接
-     */
-    @Override
-    public void handleTcpSocket(Socket socket, int port) throws Exception {
-        if (port == Main.FILTER_0_PORT) {
-            System.out.println(Main.FILTER_0_PORT + " connect success");
-            out0 = socket.getOutputStream();
-        } else if (port == Main.FILTER_1_PORT) {
-            System.out.println(Main.FILTER_1_PORT + " connect success");
-            out1 = socket.getOutputStream();
+    public void start() throws Exception {
+        System.out.println("start tcp listener port " + listen_port);
+        server = new ServerSocket(listen_port);
+        while (data_port == 0) {//拿到了端口就可以不用再监听了
+            Socket socket = server.accept();
+            int port = socket.getPort();
+            if (port == FILTER_0_LISTEN_PORT) {
+                System.out.println(FILTER_0_LISTEN_PORT + " connect success");
+                out0 = socket.getOutputStream();
+                new Thread(() -> handleInputStream(socket)).start();
+            } else if (port == FILTER_1_LISTEN_PORT) {
+                System.out.println(FILTER_1_LISTEN_PORT + " connect success");
+                out1 = socket.getOutputStream();
+                new Thread(() -> handleInputStream(socket)).start();
+            } else {
+                handleHttpSocket(socket);
+            }
         }
-        handleInputStream(socket.getInputStream());
-    }
+        System.out.println("stop tcp listener port " + listen_port);
 
+        //当结束监听的时候，说明获取到数据了，通知节点启动
+        Packet packet = new Packet(1, who, Packet.TYPE_START);
+        sendPacket(packet, out0);
+        sendPacket(packet, out1);
+    }
 
     /**
      * 处理从tcp流中解析出来的Packet
@@ -95,24 +106,13 @@ public class Engine extends Server {
     @Override
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {
-            if (packet.getWho() == Packet.WHO_FILTER_0) {
-                System.out.println("send multi trace id to filter 1");
-                sendPacket(packet, out1);
-            } else {
-                System.out.println("send multi trace id to filter 0");
-                sendPacket(packet, out0);
-            }
-//            System.out.println(packet);
+//            System.out.println("send multi trace id to filter " + packet.getWho());
+            System.out.println(packet);
+            if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
+            else sendPacket(packet, out0);
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
             synchronized (this) {//因为会有两个线程调用，所以需要同步
-                calcCheckSum(packet);
-                if (packet.getLen() == 21) {
-                    emptyLogs++;
-//                    System.out.println(packet);
-                } else {
-//                System.out.println(packet);
-                    fullLogs++;
-                }
+//                calcCheckSum(packet); TODO 待计算
             }
         } else if (packet.getType() == Packet.TYPE_END) {
             synchronized (Engine.class) {
@@ -199,14 +199,6 @@ public class Engine extends Server {
         return 0;
     }
 
-
-    @Override
-    protected void setDataPort(int dataPort) {
-        startTime = System.currentTimeMillis();
-        System.out.println("engine get port is " + dataPort);
-        resultReportPort = dataPort;
-//        resultReportPort = 9000;
-    }
 
     public void sendPacket(Packet packet, OutputStream out) {
         try {

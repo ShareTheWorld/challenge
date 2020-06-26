@@ -6,3 +6,4 @@ logs/
 out/
 src/META-INF/
 docker/*.jar
+docker/jdk11.tar.gz

@@ -1,15 +1,14 @@
 package com.aliyun.filter;
 
 
-import com.aliyun.Main;
 import com.aliyun.common.Packet;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.Proxy;
-import java.net.Socket;
 import java.net.URL;
+
+import static com.aliyun.common.Const.*;
 
 
 /**
@@ -18,139 +17,90 @@ import java.net.URL;
  * 为每一页建立索引，并且造出错误
  * 根据traceId查询出错误的日志
  */
-public class Data implements Runnable {
+public class Data {
     public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
-    public static Data data = new Data();
-    private int dataPort;
-    private int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
-    private long startTime;
+    private static int totalPageCount = 100000;//表示总页数，当真正的页数被计算出来过后会赋值给他
+    private static long startTime;
     //用于存放错误的日志
-    public static Packet errorPackets[] = new Packet[300 / PER_HANDLE_PAGE_NUM];
 
-    static {
-        for (int i = 0; i < errorPackets.length; i++) {
-            errorPackets[i] = new Packet(48, Main.who, Packet.TYPE_MULTI_TRACE_ID);
+    private static byte[] tail = new byte[1024];//尾巴数据
+    private static int tailLen = 0;//尾巴数据的长度
+    private static int pageIndex;//表示多少页
+
+    public static void start() {
+        try {
+            start0();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-    }
-
-
-    //统计用
-    private int emptyLogs = 0;
-    private int fullLogs = 0;
-
-    public static Data getData() {
-        return data;
-    }
-
-    public Data() {
-        new Thread(() -> handleData()).start();
-    }
-
-
-    public void start(int dataPort) {
-        System.out.println("start data handle thread");
-        this.dataPort = dataPort;
-        new Thread(this).start();
     }
 
 
     /**
      * 负责读取数据
      */
-    @Override
-    public void run() {
+    public static void start0() throws Exception {
         startTime = System.currentTimeMillis();
-        try {
-//            String path = "/Users/fht/d_disk/chellenger/data";
-//            String path = "/home/fu/Desktop/challege/data";
-//            InputStream in = new FileInputStream(path + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data"));
 
-            String path = "http://127.0.0.1:" + dataPort + (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-            System.out.println(path);
-            URL url = new URL(path);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-            InputStream in = conn.getInputStream();
+        String path = "http://127.0.0.1:" + data_port + (listen_port == 8000 ? "/trace1.data" : "/trace2.data");
+        System.out.println(path);
+        URL url = new URL(path);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+        InputStream in = conn.getInputStream();
 
-//            String path = (Main.listenPort == 8000 ? "/trace1.data" : "/trace2.data");
-//            Socket socket = new Socket("127.0.0.1", dataPort);
-//            String request = ("GET " + path + " HTTP/1.0\r\n" +
-//                    "Host: localhost:" + dataPort + "\r\n" +
-//                    "\r\n");
-//            OutputStream out = socket.getOutputStream();
-//            out.write(request.getBytes());
-//            out.flush();
-//            InputStream in = socket.getInputStream();
+        int n, len;
+        byte[] data;
+        Page page;
+        do {
+            //获取一个buf
+            page = Container.getEmptyPage(pageIndex);
+            page.clear();
+            page.pageIndex = pageIndex;
 
+            //将尾巴复制到缓冲区中
+            data = page.data;
+            System.arraycopy(tail, 0, data, 0, tailLen);
+            len = tailLen;
 
-            //--------------------------------------------------------
-            int pageIndex = 0;
-            Page page = Container.getEmptyPage(pageIndex);
-            long totalCount = 0;
-            synchronized (Data.class) {
-                while (true) {
-                    long startTime = System.currentTimeMillis();
-                    //读取一页数据，
-                    int len;
-                    while ((len = in.read(page.data, page.len, Math.min(PER_READ_LEN, page.data.length - page.len))) != -1) {
-                        page.len += len;
-                        if (page.len == Page.min) break;
-                    }
+            //读取一页数据，
+            while ((n = in.read(data, len, Page.LEN - len)) != -1) {
+                len += n;
+                if (len == Page.LEN) break;
+            }
 
-                    //将尾部数据放到下一页
-                    Page newPage = Container.getEmptyPage(pageIndex + 1);//添加一个新的page
-                    newPage.clear();
-                    for (int i = page.len - 1; i >= 0; i--) {
-                        if ('\n' == page.data[i]) {
-                            int l = page.len - i - 1;
-                            System.arraycopy(page.data, i + 1, newPage.data, 0, l);
-                            page.len = page.len - l;
-                            newPage.len = l;
-                            break;
-                        }
-                    }
-                    Container.movePageToFull(pageIndex);
-                    totalCount += page.len;
-                    page = newPage;
-                    pageIndex++;
-                    System.out.println("get page time =" + (System.currentTimeMillis() - startTime));
-                    if (len == -1) break;
+            //反向找到换行符
+            for (tailLen = 0; tailLen < 1000; tailLen++) {
+                if (data[len - 1 - tailLen] == '\n') {//
+                    System.arraycopy(data, len - tailLen, tail, 0, tailLen);
+                    break;
                 }
             }
-            totalPageCount = pageIndex;
-            System.out.println("totalCount=" + totalCount);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+            Container.moveEmptyToFull(pageIndex);
+
+            //计算长度
+            page.len = len - tailLen;
+            asyncHandleData(page);
+            pageIndex++;
+        } while (n != -1);
+        totalPageCount = pageIndex;
 
         System.out.println("read data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 
     }
 
+    public static void asyncHandleData(Page page) {
+        new Thread(() -> {
+            page.createIndexAndFindError();
+            Container.moveFullToHandle(page.pageIndex);
+            //发送错误出去
+            filter.sendPacket(page.errPkt);
+            //处理本地错误
+            Container.handleErrorPacket(page.errPkt);
+        }).start();//异步处理数据
 
-    /**
-     * 负责处理数据
-     */
-    public void handleData() {
-        int pageIndex = 0;
-        while (pageIndex < totalPageCount) {
-            //创建一个Packet，用于存放错误
-            Packet packet = errorPackets[pageIndex / PER_HANDLE_PAGE_NUM];//
-            int i = 0;
-            for (; i < PER_HANDLE_PAGE_NUM && pageIndex < totalPageCount; i++) {//表示每次处理多少页
-                Page page = Container.getFullPage(pageIndex++);
-                page.createIndex();
-            }
-            //TODO 处理数据
-            Filter.getFilter().sendPacket(packet);//发送错traceIds到engine
-            handleErrorTraceId(pageIndex - i, pageIndex, packet);
-            Container.moveAllPageToEmpty(pageIndex - i, pageIndex);
-        }
-        Packet endPacket = new Packet(1, Main.who, Packet.TYPE_END);
-        Filter.getFilter().sendPacket(endPacket);
-        System.out.println(pageIndex + " handle data total time=" + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
-        System.out.println("emptyLogs=" + emptyLogs + ", fullLogs=" + fullLogs);
     }
+
 
     private void handleErrorTraceId(int start, int end, Packet packet) {
         long startTime = System.currentTimeMillis();
@@ -159,7 +109,7 @@ public class Data implements Runnable {
         realHandleErrorTraceId(start, end, packet);
 
         //处理其他节点发送过来的traceId
-        packet = Filter.getFilter().getRemoteErrorPacket();
+//        packet = filter.getRemoteErrorPacket();
         System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         realHandleErrorTraceId(start, end, packet);
         System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
@@ -173,12 +123,8 @@ public class Data implements Runnable {
             byte traceId[] = new byte[16];
             System.arraycopy(bs, i, traceId, 0, 16);
             Packet logsPacket = Container.selectByTraceId(start, end, traceId);
-            if (logsPacket.getLen() == 21) {
-                emptyLogs++;
-            } else {
-                fullLogs++;
-            }
-            Filter.getFilter().sendPacket(logsPacket);
+
+            filter.sendPacket(logsPacket);
         }
     }
 
