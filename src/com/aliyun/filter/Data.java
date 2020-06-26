@@ -89,44 +89,16 @@ public class Data {
 
     }
 
+    /**
+     * 创建索引->找出错误->发送错误
+     */
     public static void asyncHandleData(Page page) {
         new Thread(() -> {
             page.createIndexAndFindError();
             Container.moveFullToHandle(page.pageIndex);
             //发送错误出去
             filter.sendPacket(page.errPkt);
-            //处理本地错误
-            Container.handleErrorPacket(page.errPkt);
         }).start();//异步处理数据
-
     }
-
-
-    private void handleErrorTraceId(int start, int end, Packet packet) {
-        long startTime = System.currentTimeMillis();
-        //处理本地错误traceId
-        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
-        realHandleErrorTraceId(start, end, packet);
-
-        //处理其他节点发送过来的traceId
-//        packet = filter.getRemoteErrorPacket();
-        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
-        realHandleErrorTraceId(start, end, packet);
-        System.out.println("query data time = " + (System.currentTimeMillis() - startTime));
-    }
-
-    private void realHandleErrorTraceId(int start, int end, Packet packet) {
-        System.out.println("traceIds number=" + (packet.getLen() - Packet.P_DATA) / 16);
-        //处理本地错误traceId
-        byte[] bs = packet.getBs();
-        for (int i = Packet.P_DATA; i < packet.getLen(); i += 16) {
-            byte traceId[] = new byte[16];
-            System.arraycopy(bs, i, traceId, 0, 16);
-            Packet logsPacket = Container.selectByTraceId(start, end, traceId);
-
-            filter.sendPacket(logsPacket);
-        }
-    }
-
 
 }

@@ -23,7 +23,23 @@ public class Filter extends Server {
     protected ServerSocket server;
     private Socket socket;
     private OutputStream out;
-    private static Packet[] remoteErrPkt = new Packet[1000];
+    private static Packet[] remoteErrPkts = new Packet[1500];
+
+    public synchronized void putPacket(Packet p) {
+        remoteErrPkts[p.getPage()] = p;
+        notifyAll();
+    }
+
+    public synchronized Packet getPacket(int i) {
+        while (remoteErrPkts[i] == null) {
+            try {
+                wait();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return remoteErrPkts[i];
+    }
 
 
     public void start() throws Exception {
@@ -46,9 +62,8 @@ public class Filter extends Server {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
 //            System.out.println("receive multi trace id");
 //            System.out.println(packet);
-            Container.handleErrorPacket(packet);
-//            setRemoteErrorPacket(packet);
-//                Data.getData().handleErrorTraceId(packet);
+//            remoteErrPkts[packet.getPage()] = packet;//将packet放到对应的位置
+            putPacket(packet);
         } else if (packet.getType() == Packet.TYPE_START) {
             new Thread(() -> Data.start()).start();
         } else {

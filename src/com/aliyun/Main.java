@@ -26,10 +26,11 @@ public class Main {
             new Engine().start();
         } else {
             if (listen_port == 8001) who = WHO_FILTER_1;
-            data_port = 7000;
-            Data.start();
+//            data_port = 7000;
+//            Data.start();
 //            who = WHO_FILTER_1;
 //            Data.start();
+            new Thread(() -> Container.handleErrorPacket()).start();//启动一个处理错误的线程
             filter = new Filter();
             filter.start();
         }

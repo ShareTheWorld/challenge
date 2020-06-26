@@ -2,7 +2,7 @@ package com.aliyun.filter;
 
 import com.aliyun.common.Packet;
 
-import static com.aliyun.common.Const.who;
+import static com.aliyun.common.Const.*;
 
 /**
  * Page容器，主要负责管理Page
@@ -66,8 +66,8 @@ public class Container {
         try {
             fullPages[i % len] = emptyPages[i % len];
             emptyPages[i % len] = null;
-            System.out.println("move empty to full, page=" + i);
-            printPage();
+//            System.out.println("move empty to full, page=" + i);
+//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
@@ -79,8 +79,8 @@ public class Container {
         try {
             handlePages[i % len] = fullPages[i % len];
             fullPages[i % len] = null;
-            System.out.println("move full to handle, page=" + i);
-            printPage();
+//            System.out.println("move full to handle, page=" + i);
+//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
@@ -92,34 +92,45 @@ public class Container {
         try {
             emptyPages[i % len] = handlePages[i % len];
             handlePages[i % len] = null;
-            System.out.println("move handle to empty, page=" + i);
-            printPage();
+//            System.out.println("move handle to empty, page=" + i);
+//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private static void printPage() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < len; i++) {
-            sb.append((emptyPages[i] != null ? "1" : "_") + "\t");
+
+    public static void handleErrorPacket() {
+        int pageIndex = 0;
+        Page page;
+        while (true) {
+            //处理本本地的错误
+            for (int i = 0; i < PER_HANDLE_PAGE_NUM; i++) {
+                page = getHandlePage(pageIndex + i);
+                page.select(page.errPkt);
+            }
+
+            //处理远程的错误
+            for (int i = 0; i < PER_HANDLE_PAGE_NUM; i++) {
+                packet = filter.getPacket(pageIndex + i);
+                page = getHandlePage(pageIndex + i);
+                page.select(packet);
+            }
+
+            //移动对应的page到empty中去
+            for (int i = 0; i < PER_HANDLE_PAGE_NUM; i++) {
+                if (pageIndex + i - PER_HANDLE_PAGE_NUM >= 0) {
+                    moveHandleToEmpty(pageIndex + i - PER_HANDLE_PAGE_NUM);
+                }
+            }
+            pageIndex += PER_HANDLE_PAGE_NUM;
         }
-        sb.append("\n");
-        for (int i = 0; i < len; i++) {
-            sb.append((fullPages[i] != null ? "1" : "_") + "\t");
-        }
-        sb.append("\n");
-        System.out.println(sb.toString());
-    }
-
-
-    public static void handleErrorPacket(Packet packet) {
-        //计算与之对应的页
-        int pageIndex = packet.getPage();
-        Page page = getHandlePage(pageIndex);
-
-
+//        //计算与之对应的页
+//        int pageIndex = packet.getPage();
+//        Page page = getHandlePage(pageIndex);
+//        page.select(packet);
+//        moveHandleToEmpty(pageIndex);
     }
 
     /**
@@ -184,4 +195,20 @@ public class Container {
     }
 
 
+    private static void printPage() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < len; i++) {
+            sb.append((emptyPages[i] != null ? "1" : "_") + "\t");
+        }
+        sb.append("\n");
+        for (int i = 0; i < len; i++) {
+            sb.append((fullPages[i] != null ? "1" : "_") + "\t");
+        }
+        sb.append("\n");
+        for (int i = 0; i < len; i++) {
+            sb.append((handlePages[i] != null ? "1" : "_") + "\t");
+        }
+        sb.append("\n");
+        System.out.println(sb.toString());
+    }
 }

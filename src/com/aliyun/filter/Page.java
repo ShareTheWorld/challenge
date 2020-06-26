@@ -6,8 +6,7 @@ import com.aliyun.common.Packet;
 import java.util.HashSet;
 import java.util.Set;
 
-import static com.aliyun.common.Const.filter;
-import static com.aliyun.common.Const.who;
+import static com.aliyun.common.Const.*;
 
 public class Page {
     private static final int SKIP_LEN = 70;//跳过长度
