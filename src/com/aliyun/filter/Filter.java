@@ -38,9 +38,10 @@ public class Filter extends Server {
 
 
     public void handlePacket(Packet packet) {
-        
+
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
 //            setRemoteErrorPacket(packet);
+            Container.select(packet);
 //            System.out.println(packet);
         } else if (packet.getType() == Packet.TYPE_START) {//启动数据处理接口
             System.out.println("receive start packet");
@@ -75,7 +76,7 @@ public class Filter extends Server {
         return null;
     }
 
-    public void sendPacket(Packet packet) {
+    public synchronized void sendPacket(Packet packet) {
         try {
             out.write(packet.getBs(), 0, packet.getLen());
             out.flush();

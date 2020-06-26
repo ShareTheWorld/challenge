@@ -56,14 +56,14 @@ public class Buffer {
 
 
     public void select(Packet packet) {
-//        byte[] bs = packet.getBs();
-//        int len = packet.getLen();
-//        for (int i = Packet.P_DATA; i < len; i += 16) {
-//            select(bs, i);
-//        }
+        byte[] bs = packet.getBs();
+        int len = packet.getLen();
+        for (int i = Packet.P_DATA; i < len; i += 16) {
+            select(bs, i);
+        }
     }
 
-    Packet pkt = new Packet(16, who, Packet.TYPE_MULTI_LOG);
+    Packet pkt = new Packet(64, who, Packet.TYPE_MULTI_LOG);
 
     public void select(byte bs[], int s) {
         pkt.reset(who, Packet.TYPE_MULTI_LOG);
@@ -72,19 +72,20 @@ public class Buffer {
         //找到hash所在位置
         int hash = (bs[s] + (bs[s + 1] << 3) + (bs[s + 2] << 6) + (bs[s + 3] << 9) + (bs[s + 4] << 12)) & 0XFFFF;
         int link[][] = bucket[hash];
-        if (link == null) {
-            //TODO 需要发送pkt
-//            filter.sendPacket(pkt);
-            return;
-        }
-        int count = link[1][0];
-        for (int i = 1; i <= count; i++) {
-            //start=link[0][i] len=link[1][i]
-            boolean b = equals(data, link[0][i], bs, s);
-            if (b)
+        if (link != null) {
+            int count = link[1][0];
+            for (int i = 1; i <= count; i++) {
+                //start=link[0][i] len=link[1][i]
+//                boolean b = equals(data, link[0][i], bs, s);//会增加耗时  需要engine去做过滤
+//                if (b) {
                 pkt.writeWithDataLen(data, link[0][i], link[1][i]);
+//                }
+            }
         }
-        System.out.println(pkt);
+
+        //TODO 发送packet
+        filter.sendPacket(pkt);
+//        System.out.println(pkt);
 
     }
 

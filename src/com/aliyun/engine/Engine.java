@@ -49,7 +49,7 @@ public class Engine extends Server {
             if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
             else sendPacket(packet, out0);
         } else {
-            System.out.println("not handle packet");
+            System.out.println(packet);
         }
     }
 

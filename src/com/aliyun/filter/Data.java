@@ -56,11 +56,12 @@ public class Data {
         byte[] data;
         Buffer buf;
         do {
-//            System.out.println("read data, page =" + page);
             //获取一个buf
             buf = Container.get(page);
             buf.clear();
             buf.setPage(page);
+
+            System.out.println("read data, page =" + page);
 
             data = buf.data;
             //将尾巴复制到缓冲区中
@@ -110,6 +111,7 @@ public class Data {
     }
 
     private static void handleData(Buffer buf) {
+        System.out.println("handle data, page=" + buf.page);
         byte[] data = buf.data;
         int i = 0;
         do {
