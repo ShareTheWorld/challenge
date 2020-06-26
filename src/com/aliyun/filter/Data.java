@@ -99,7 +99,7 @@ public class Data {
 //        System.out.println(map);
         System.out.println(" error traceId count:" + testErrorTraceIdSet.size());
         System.out.println("min line len is :" + testMinLineLen + ", max line len is :" + testMaxLineLen);
-        System.out.println("time=" + (System.currentTimeMillis() - start_time));
+        System.out.println("read total time=" + (System.currentTimeMillis() - start_time));
         System.out.println("total count=" + testTotalCount);
         System.out.println("page count=" + page);
         System.out.println("params size=" + testParams.size());
@@ -130,7 +130,7 @@ public class Data {
         } while (i != buf.len);
 
         //发送错误的traceId到engine
-//        filter.sendPacket(buf.packet);
+        filter.sendPacket(buf.errPkt);
 
         //处理完了，将数据的状态设置为1
         Container.finishIndex(buf);//完成索引创建
