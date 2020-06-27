@@ -25,7 +25,6 @@ public class Engine extends Server {
     private OutputStream out1;
     protected ServerSocket server;
 
-    private int resultReportPort;//结果上报端口
     private MD5 md5 = new MD5();
 
     //用于向结果提交接口发送数据，总共20000个， "traceId[16]":"md5[32]", 20000 * (1 + 16 + 3 + 32 + 2)
@@ -48,7 +47,7 @@ public class Engine extends Server {
         try {
             byte bs[] = ("POST /api/finished HTTP/1.1\r\n" +
                     "Content-Type: multipart/form-data; boundary=--------------------------428154304761041392223667\r\n" +
-                    "Host: localhost:" + resultReportPort + "\r\n" +
+                    "Host: localhost:" + data_port + "\r\n" +
                     "Content-Length:        \r\n" +
                     "Connection: keep-alive\r\n" +
                     "\r\n" +
@@ -107,14 +106,11 @@ public class Engine extends Server {
     public void handlePacket(Packet packet) {
         //如果是traceId或者读取结束，就发送给filter
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID || packet.getType() == Packet.TYPE_READ_END) {
-//            System.out.println("send multi trace id to filter " + packet.getWho());
-            System.out.println(packet);
             if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
             else sendPacket(packet, out0);
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
             synchronized (this) {//因为会有两个线程调用，所以需要同步
-//                calcCheckSum(packet); TODO 待计算
-                System.out.println(packet);
+                calcCheckSum(packet); //TODO 待计算
             }
         } else if (packet.getType() == Packet.TYPE_END) {
             synchronized (Engine.class) {
@@ -141,6 +137,58 @@ public class Engine extends Server {
     }
 
     private void mergeAndMd5(Packet p1, Packet p2) {
+        List<byte[]> list = new ArrayList(200);
+        byte bs[] = p1.getBs();
+        int len = p1.getLen();
+        int traceIdLen;
+        if (bs[Packet.P_DATA + 14] == '|') traceIdLen = 14;
+        else if (bs[Packet.P_DATA + 15] == '|') traceIdLen = 15;
+        else traceIdLen = 16;
+        int i = Packet.P_DATA + 16, logLen;
+        for (; i < len; ) {
+            logLen = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
+            byte[] log = new byte[logLen];
+            System.arraycopy(bs, i + 2, log, 0, logLen);
+            list.add(log);
+            i += logLen + 2;
+        }
+
+        bs = p2.getBs();
+        len = p2.getLen();
+        i = Packet.P_DATA + 16;
+        for (; i < len; ) {
+            logLen = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
+            byte[] log = new byte[logLen];
+            System.arraycopy(bs, i + 2, log, 0, logLen);
+            i += logLen + 2;
+        }
+
+        Collections.sort(list, (bs1, bs2) -> {
+            for (int j = 20; j < 35; j++) {//20 时间的前面几位数可以不比较,35 j在超过时间之前就表完了
+                if (bs1[j] == bs2[j]) continue;
+                return bs1[j] - bs2[j];
+            }
+            return 0;
+        });
+        md5.reset();
+        for (i = 0; i < list.size(); i++) {
+            byte b[] = list.get(i);
+            md5.update(bs, 0, bs.length);
+        }
+
+        request[requestLen++] = '"';
+        System.arraycopy(bs, Packet.P_DATA, request, requestLen, traceIdLen);//写入key
+        requestLen += traceIdLen;
+        request[requestLen++] = '"';
+        request[requestLen++] = ':';
+        request[requestLen++] = '"';
+        md5.digest(request, requestLen);
+        requestLen += 32;
+        request[requestLen++] = '"';
+        request[requestLen++] = ',';
+    }
+
+    private void mergeAndMd5_2(Packet p1, Packet p2) {
         byte bs1[] = p1.getBs();
         int len1 = p1.getLen();
         byte bs2[] = p2.getBs();
@@ -227,11 +275,11 @@ public class Engine extends Server {
                 request[162 + i] = (byte) (cl.charAt(i));
             }
 
-//            System.out.println(new String(request, 0, requestLen));
+            System.out.println(new String(request, 0, requestLen));
             System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
-//            resultReportPort = 9000;
-            Socket socket = new Socket("127.0.0.1", resultReportPort);
+            data_port = 9000;
+            Socket socket = new Socket("127.0.0.1", data_port);
 //            Socket socket = new Socket();
 //            socket.connect(new InetSocketAddress("127.0.0.1", 9000));
             OutputStream out = socket.getOutputStream();

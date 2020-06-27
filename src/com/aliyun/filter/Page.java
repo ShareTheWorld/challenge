@@ -123,25 +123,24 @@ public class Page {
             int count = link[1][0];
             for (int i = 1; i <= count; i++) {
                 //start=link[0][i] len=link[1][i]
-//                boolean b = equals(data, link[0][i], bs, s);//会增加耗时  需要engine去做过滤
-//                if (b) {
-                pkt.writeWithDataLen(data, link[0][i], link[1][i]);
-//                }
+                boolean b = equals(data, link[0][i], bs, s);//会增加耗时  需要engine去做过滤
+                if (b) {
+                    pkt.writeWithDataLen(data, link[0][i], link[1][i]);
+                }
             }
         }
 
         //TODO 发送packet
         filter.sendPacket(pkt);
 //        System.out.println(pkt);
-
     }
 
     /**
-     * 从data的s位置开始，判断data是否包含key
+     * 比较两个byte是否相等
      */
-    private static boolean startsWith(byte data[], int s, byte key[]) {
-        for (int i = 0; i < key.length; i++) {
-            if (data[s + i] != key[i]) return false;
+    public static boolean equals(byte data[], int ds, byte key[], int ks) {
+        for (int i = 0; i < 16; i++) {
+            if (data[ds + i] != key[ks + i]) return false;
         }
         return true;
     }
