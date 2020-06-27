@@ -23,24 +23,35 @@ public class Filter extends Server {
     protected ServerSocket server;
     private Socket socket;
     private OutputStream out;
-    private static Packet[] remoteErrPkts = new Packet[1500];
     private static int remotePageCount = 10000;
+    private Packet remoteErrorPacket;
 
-    public synchronized void putPacket(Packet p) {
-        remoteErrPkts[p.getPage()] = p;
-        notifyAll();
+    public synchronized void setRemoteErrorPacket(Packet packet) {
+        try {
+            while (remoteErrorPacket != null) {
+                this.wait();
+            }
+            this.remoteErrorPacket = packet;
+            this.notifyAll();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("filter packet error");
+        }
     }
 
-    public synchronized Packet getPacket(int i) {
-        if (i >= remotePageCount) return null;
-        while (remoteErrPkts[i] == null) {
-            try {
-                wait();
-            } catch (Exception e) {
-                e.printStackTrace();
+    public synchronized Packet getRemoteErrorPacket() {
+        try {
+            while (remoteErrorPacket == null) {
+                this.wait();
             }
+            Packet packet = remoteErrorPacket;
+            remoteErrorPacket = null;
+            notifyAll();
+            return packet;
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("filter packet error");
         }
-        return remoteErrPkts[i];
     }
 
 
@@ -62,10 +73,7 @@ public class Filter extends Server {
     @Override
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
-//            System.out.println("receive multi trace id");
-//            System.out.println(packet);
-//            remoteErrPkts[packet.getPage()] = packet;//将packet放到对应的位置
-            putPacket(packet);
+            setRemoteErrorPacket(packet);
         } else if (packet.getType() == Packet.TYPE_START) {
             new Thread(() -> Data.start()).start();
         } else if (packet.getType() == Packet.TYPE_READ_END) {

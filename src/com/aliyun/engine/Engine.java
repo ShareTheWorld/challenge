@@ -6,6 +6,7 @@ import com.aliyun.Main;
 import com.aliyun.common.MD5;
 import com.aliyun.common.Packet;
 import com.aliyun.common.Server;
+import com.aliyun.common.Utils;
 
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -137,58 +138,6 @@ public class Engine extends Server {
     }
 
     private void mergeAndMd5(Packet p1, Packet p2) {
-        List<byte[]> list = new ArrayList(200);
-        byte bs[] = p1.getBs();
-        int len = p1.getLen();
-        int traceIdLen;
-        if (bs[Packet.P_DATA + 14] == '|') traceIdLen = 14;
-        else if (bs[Packet.P_DATA + 15] == '|') traceIdLen = 15;
-        else traceIdLen = 16;
-        int i = Packet.P_DATA + 16, logLen;
-        for (; i < len; ) {
-            logLen = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
-            byte[] log = new byte[logLen];
-            System.arraycopy(bs, i + 2, log, 0, logLen);
-            list.add(log);
-            i += logLen + 2;
-        }
-
-        bs = p2.getBs();
-        len = p2.getLen();
-        i = Packet.P_DATA + 16;
-        for (; i < len; ) {
-            logLen = ((bs[i] & 0XFF) << 8) + (bs[i + 1] & 0XFF);
-            byte[] log = new byte[logLen];
-            System.arraycopy(bs, i + 2, log, 0, logLen);
-            i += logLen + 2;
-        }
-
-        Collections.sort(list, (bs1, bs2) -> {
-            for (int j = 20; j < 35; j++) {//20 时间的前面几位数可以不比较,35 j在超过时间之前就表完了
-                if (bs1[j] == bs2[j]) continue;
-                return bs1[j] - bs2[j];
-            }
-            return 0;
-        });
-        md5.reset();
-        for (i = 0; i < list.size(); i++) {
-            byte b[] = list.get(i);
-            md5.update(bs, 0, bs.length);
-        }
-
-        request[requestLen++] = '"';
-        System.arraycopy(bs, Packet.P_DATA, request, requestLen, traceIdLen);//写入key
-        requestLen += traceIdLen;
-        request[requestLen++] = '"';
-        request[requestLen++] = ':';
-        request[requestLen++] = '"';
-        md5.digest(request, requestLen);
-        requestLen += 32;
-        request[requestLen++] = '"';
-        request[requestLen++] = ',';
-    }
-
-    private void mergeAndMd5_2(Packet p1, Packet p2) {
         byte bs1[] = p1.getBs();
         int len1 = p1.getLen();
         byte bs2[] = p2.getBs();
@@ -198,7 +147,8 @@ public class Engine extends Server {
         //traceId的长度可能好似14，15，16
         int offset = 20;//TODO 时间的开始位置
         int traceIdLen;
-        if (bs1[Packet.P_DATA + 14] == '|') traceIdLen = 14;
+        if (bs1[Packet.P_DATA + 13] == '|') traceIdLen = 13;
+        else if (bs1[Packet.P_DATA + 14] == '|') traceIdLen = 14;
         else if (bs1[Packet.P_DATA + 15] == '|') traceIdLen = 15;
         else traceIdLen = 16;
 //        System.out.println(new String(bs1, Packet.P_DATA, 20) + "  " + traceIdLen);
@@ -243,9 +193,13 @@ public class Engine extends Server {
     }
 
     private int compareBytes(byte bs1[], int s1, byte bs2[], int s2, int len) {
-        for (int i = 0; i < 16; i++) {//TODO 时间的前面几位数可以不比较
-            if (bs1[s1 + i] == bs2[s2 + i]) continue;
-            return bs1[s1 + i] - bs2[s2 + i];
+        try {
+            for (int i = 0; i < 16; i++) {//TODO 时间的前面几位数可以不比较
+                if (bs1[s1 + i] == bs2[s2 + i]) continue;
+                return bs1[s1 + i] - bs2[s2 + i];
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return 0;
     }
@@ -275,7 +229,7 @@ public class Engine extends Server {
                 request[162 + i] = (byte) (cl.charAt(i));
             }
 
-            System.out.println(new String(request, 0, requestLen));
+//            System.out.println(new String(request, 0, requestLen));
             System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
             data_port = 9000;

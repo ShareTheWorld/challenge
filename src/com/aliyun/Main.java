@@ -14,7 +14,7 @@ import java.util.Arrays;
 public class Main {
 
     public static void main(String args[]) throws Exception {
-        listen_port = 8002;
+        listen_port = 8000;
         try {
             listen_port = Integer.valueOf(args[0]);
         } catch (Exception e) {
@@ -30,7 +30,8 @@ public class Main {
 //            Data.start();
 //            who = WHO_FILTER_1;
 //            Data.start();
-            new Thread(() -> Container.handleErrorPacket()).start();//启动一个处理错误的线程
+            new Thread(() -> Container.handleData()).start();//启动一个创建索引和发现错误的线程
+            new Thread(() -> Container.handleErrorPacket()).start();
             filter = new Filter();
             filter.start();
         }

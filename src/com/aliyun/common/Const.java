@@ -18,7 +18,6 @@ public class Const {
     public static Filter filter;
 
     //两核加上超线程技术，可以同时执行4个线程
-    public static final int PER_HANDLE_PAGE_NUM = 4;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     public static int total_page_count = 10000;//表示总页数，当真正的页数被计算出来过后会赋值给他
 

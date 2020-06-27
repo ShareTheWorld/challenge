@@ -51,6 +51,7 @@ public class Data {
         byte[] data;
         Page page;
         do {
+            long l = System.currentTimeMillis();
             //获取一个buf
             page = Container.getEmptyPage(pageIndex);
             page.clear();
@@ -79,8 +80,9 @@ public class Data {
 
             //计算长度
             page.len = len - tailLen;
-            asyncHandleData(page);
             pageIndex++;
+            System.out.println("read data , page=" + pageIndex + ", time=" + (System.currentTimeMillis() - l));
+
         } while (n != -1);
         total_page_count = pageIndex;
         Packet readEndPacket = new Packet(1, who, Packet.TYPE_READ_END);
@@ -91,16 +93,5 @@ public class Data {
 
     }
 
-    /**
-     * 创建索引->找出错误->发送错误
-     */
-    public static void asyncHandleData(Page page) {
-        new Thread(() -> {
-            page.createIndexAndFindError();
-            Container.moveFullToHandle(page.pageIndex);
-            //发送错误出去
-            filter.sendPacket(page.errPkt);
-        }).start();//异步处理数据
-    }
 
 }
