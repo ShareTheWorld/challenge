@@ -81,7 +81,7 @@ public class Data {
             //计算长度
             page.len = len - tailLen;
             pageIndex++;
-            System.out.println("read data , page=" + pageIndex + ", time=" + (System.currentTimeMillis() - l));
+            System.out.println("read data, page=" + pageIndex + ",time=" + (System.currentTimeMillis() - l));
 
         } while (n != -1);
         total_page_count = pageIndex;

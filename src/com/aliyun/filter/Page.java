@@ -3,15 +3,11 @@ package com.aliyun.filter;
 
 import com.aliyun.common.Packet;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
-import static com.aliyun.common.Const.*;
-
 public class Page {
-    private static final int SKIP_LEN = 70;//跳过长度
+    private static final int SKIP_LEN = 100;//跳过长度
 
     public static final int LEN = 32 * 1024 * 1024;//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int pageIndex = 0;//表示这是第几页
@@ -36,6 +32,7 @@ public class Page {
     public void createIndexAndFindError() {
         if (isHandle) return;
         isHandle = true;
+        long start_time = System.currentTimeMillis();
         int i = 0;
         do {
             int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
@@ -45,6 +42,7 @@ public class Page {
             put(hash, i, l);
             i = i + l;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
+        System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
 //        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
@@ -52,33 +50,24 @@ public class Page {
     public int getLine(byte[] d, int s) {
         int i = s + SKIP_LEN;
         //开始寻早error=1和!http.status_code=200 和\n
-        boolean isError = false;
         for (; ; i++) {
-            try {
-                //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
-                if (d[i] == '=') {
-                    //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
-                    if (d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
-                            && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
-                            && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' && d[i - 5] == '_'
-                            && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
-                            && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
-                        isError = true;
-                    } else if (d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
-                            && d[i - 1] == 'r' && d[i + 1] == '1') {
-                        isError = true;
-                    }
-                } else if (d[i] == '\n') {
-                    i++;
-                    break;
+            //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
+            if (d[i] == '=') {
+                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
+                if (d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
+                        && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
+                        && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' && d[i - 5] == '_'
+                        && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
+                        && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
+                    errPkt.write(d, s, 16);
+                } else if (d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
+                        && d[i - 1] == 'r' && d[i + 1] == '1') {
+                    errPkt.write(d, s, 16);
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
+            } else if (d[i] == '\n') {
+                i++;
+                break;
             }
-        }
-        if (isError) {
-//            testCountErrorSet.add(new String(d, s, 16));
-            errPkt.write(d, s, 16);
         }
         return i - s;
     }

@@ -1,13 +1,6 @@
 package com.aliyun.filter;
 
 import com.aliyun.common.Packet;
-import com.aliyun.common.Utils;
-import javafx.css.CssParser;
-
-import java.time.Period;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 
 import static com.aliyun.common.Const.*;
 
@@ -15,8 +8,8 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 6;
-    public static final int PER_HANDLE_PAGE_NUM = 2;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 30;
+    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
@@ -31,6 +24,7 @@ public class Container {
         for (int i = 0; i < errPkts.length; i++) {
             errPkts[i] = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);
         }
+        System.out.println("init memory finish");
     }
 
 
@@ -81,8 +75,6 @@ public class Container {
         try {
             fullPages[i % len] = emptyPages[i % len];
             emptyPages[i % len] = null;
-//            System.out.println("move empty to full, page=" + i);
-//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
@@ -94,8 +86,6 @@ public class Container {
         try {
             handlePages[i % len] = fullPages[i % len];
             fullPages[i % len] = null;
-//            System.out.println("move full to handle, page=" + i);
-//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
@@ -107,8 +97,6 @@ public class Container {
         try {
             emptyPages[i % len] = handlePages[i % len];
             handlePages[i % len] = null;
-//            System.out.println("move handle to empty, page=" + i);
-//            printPage();
             Container.class.notifyAll();
         } catch (Exception e) {
             e.printStackTrace();
@@ -136,7 +124,7 @@ public class Container {
             //TODO 处理数据
             filter.sendPacket(packet);//发送错traceIds到engine
 //            asyncHandleErrorPacket(pageIndex - i, pageIndex, packet);
-            System.out.println("create index and find error ,from [" + (pageIndex - i) + "," + pageIndex + "),time=" + (System.currentTimeMillis() - startTime));
+//            System.out.println("create index and find error ,from [" + (pageIndex - i) + "," + pageIndex + "),time=" + (System.currentTimeMillis() - startTime));
         }
 //        getHandlePage(pageIndex - 1);
         System.out.println("-------------create index and find error Thread end------------------");
@@ -155,7 +143,6 @@ public class Container {
                 if (page == null) break;
             }
             //每两页处理一次，最后一页就不处理了
-            System.out.println("query from [" + i + "," + (i + j) + ")");
             handleErrorPacket(i, i + j, errPkts[i / PER_HANDLE_PAGE_NUM]);
         }
         Packet endPacket = new Packet(1, who, Packet.TYPE_END);
@@ -165,23 +152,20 @@ public class Container {
     }
 
     public static void handleErrorPacket(int start, int end, Packet packet) {
+        //处理本地错误traceId TODO 第一次会比较耗时，要等待下一个准备好才能查询
         long startTime = System.currentTimeMillis();
-        //处理本地错误traceId
 //        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-
-        System.out.println("query data time1 = " + (System.currentTimeMillis() - startTime));
+        System.out.println("query error 1,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         //处理其他节点发送过来的traceId
         packet = filter.getRemoteErrorPacket();
 //        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-
-        System.out.println("query data time2 = " + (System.currentTimeMillis() - startTime));
+        System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         for (int i = start; i < end; i++) {
             if (i - PER_HANDLE_PAGE_NUM >= 0)
                 moveHandleToEmpty(i - PER_HANDLE_PAGE_NUM);
         }
-        System.out.println("query data time3 = " + (System.currentTimeMillis() - startTime));
 
     }
 
