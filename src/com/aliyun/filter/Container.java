@@ -8,8 +8,8 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 6;
-    public static final int PER_HANDLE_PAGE_NUM = 2;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 20;
+    public static final int PER_HANDLE_PAGE_NUM = 5;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
@@ -42,7 +42,7 @@ public class Container {
                 }
             }
             page.pageIndex = i;
-            System.out.println("get empty page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+//            System.out.println("get empty page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
             return page;
         }
     }
@@ -74,7 +74,7 @@ public class Container {
                     e.printStackTrace();
                 }
             }
-            System.out.println("get full page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+//            System.out.println("get full page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
             return page;
         }
     }
@@ -106,7 +106,7 @@ public class Container {
                     e.printStackTrace();
                 }
             }
-            System.out.println("get handle page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+//            System.out.println("get handle page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
             return page;
         }
     }
@@ -124,6 +124,16 @@ public class Container {
         }
     }
 
+    //处理第i页的数据
+    public static void asyncHandleData(int pageIndex) {
+        new Thread(() -> {
+            System.out.println("start handle data ,page=" + pageIndex);
+            Page page = Container.getFullPage(pageIndex);
+            page.createIndexAndFindError();
+            moveFullToHandle(pageIndex);//创建完索引，就可以将这个移动到其他地方了
+            System.out.println("end handle data ,page=" + pageIndex);
+        }).start();
+    }
 
     /**
      * 创建索引->找出错误->发送错误
@@ -155,20 +165,26 @@ public class Container {
         new Thread(() -> handleErrorPacket(start, end, packet)).start();
     }
 
+    static Packet errorPacket = new Packet(16, who, Packet.TYPE_MULTI_TRACE_ID);
+
     public static void handleErrorPacket() {
 
         for (int i = 0; i < total_page_count; i += PER_HANDLE_PAGE_NUM) {
             int j = 0;
+            errorPacket.reset(who, Packet.TYPE_MULTI_TRACE_ID);
             for (; j < PER_HANDLE_PAGE_NUM; j++) {
                 Page page = getHandlePage(i + j);
                 if (page == null) break;
+                errorPacket.write(page.err, 0, page.errLen);
             }
+            filter.sendPacket(errorPacket);//发送错traceIds到engine
             //每两页处理一次，最后一页就不处理了
-            handleErrorPacket(i, i + j, errPkts[i / PER_HANDLE_PAGE_NUM]);
+            handleErrorPacket(i, i + j, errorPacket);
         }
         Packet endPacket = new Packet(1, who, Packet.TYPE_END);
         filter.sendPacket(endPacket);
         System.out.println("-------------query logs Thread end------------------");
+        System.out.println("error count : " + Page.testCountErrorSet.size());
 
     }
 

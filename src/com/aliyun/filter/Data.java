@@ -79,6 +79,8 @@ public class Data {
             Container.moveEmptyToFull(pageIndex);
             //计算长度
             page.len = len - tailLen;
+
+            Container.asyncHandleData(pageIndex);
             pageIndex++;
             System.out.println("read data, page=" + pageIndex + ",time=" + (System.currentTimeMillis() - l));
 

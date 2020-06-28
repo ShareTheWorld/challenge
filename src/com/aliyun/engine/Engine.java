@@ -107,6 +107,7 @@ public class Engine extends Server {
     public void handlePacket(Packet packet) {
         //如果是traceId或者读取结束，就发送给filter
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID || packet.getType() == Packet.TYPE_READ_END) {
+            System.out.println(packet);
             if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
             else sendPacket(packet, out0);
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
@@ -229,10 +230,10 @@ public class Engine extends Server {
                 request[162 + i] = (byte) (cl.charAt(i));
             }
 
-//            System.out.println(new String(request, 0, requestLen));
+            System.out.println(new String(request, 0, requestLen));
             System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
-            data_port = 9000;
+//            data_port = 9000;
             Socket socket = new Socket("127.0.0.1", data_port);
 //            Socket socket = new Socket();
 //            socket.connect(new InetSocketAddress("127.0.0.1", 9000));

@@ -30,7 +30,7 @@ public class Main {
 //            Data.start();
 //            who = WHO_FILTER_1;
 //            Data.start();
-            new Thread(() -> Container.handleData()).start();//启动一个创建索引和发现错误的线程
+//            new Thread(() -> Container.handleData()).start();//启动一个创建索引和发现错误的线程
             new Thread(() -> Container.handleErrorPacket()).start();
             filter = new Filter();
             filter.start();
