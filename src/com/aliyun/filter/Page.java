@@ -63,12 +63,10 @@ public class Page {
                         && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' && d[i - 5] == '_'
                         && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
                         && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
+                    errPkt.write(d, s, 16);
                 } else if (d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
                         && d[i - 1] == 'r' && d[i + 1] == '1') {
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
+                    errPkt.write(d, s, 16);
                 }
             }
         }
