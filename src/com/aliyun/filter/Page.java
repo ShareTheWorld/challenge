@@ -18,6 +18,8 @@ public class Page {
     public int link[][][] = new int[10000][2][200];//data[i][0][0]存的hash;  data[i][0][0]存的高度, 4.6M
     public int p;//表示当前link取到第几个位置了
 
+    public byte[] err = new byte[2048];//可以存放128个错误了
+    public int errLen = 0;
 
     private boolean isHandle = false;
 
@@ -35,8 +37,7 @@ public class Page {
         long start_time = System.currentTimeMillis();
         int i = 0;
         do {
-            int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
-
+            int hash = hash(data, i);
             //获取一行数据
             int l = getLine(data, i);
             put(hash, i, l);
@@ -46,12 +47,15 @@ public class Page {
 //        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
+    public int hash(byte[] d, int i) {
+        return (d[i] + (d[i + 1] << 3) + (d[i + 2] << 6) + (d[i + 3] << 9) + (d[i + 4] << 12)) & 0XFFFF;
+    }
+
 
     public int getLine(byte[] d, int s) {
         int i = s + SKIP_LEN;
         //开始寻早error=1和!http.status_code=200 和\n
-        for (; ; i++) {
-            //可以判断是否小于'='在进去，如果有分支预测技术的话，会增加新能，=和\n成功的次数是20%
+        while (d[i++] != '\n') {
             if (d[i] == '=') {
                 //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
                 if (d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
@@ -59,18 +63,18 @@ public class Page {
                         && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' && d[i - 5] == '_'
                         && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
                         && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
-                    errPkt.write(d, s, 16);
+                    System.arraycopy(d, s, err, errLen, 16);
+                    errLen += 16;
                 } else if (d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
                         && d[i - 1] == 'r' && d[i + 1] == '1') {
-                    errPkt.write(d, s, 16);
+                    System.arraycopy(d, s, err, errLen, 16);
+                    errLen += 16;
                 }
-            } else if (d[i] == '\n') {
-                i++;
-                break;
             }
         }
         return i - s;
     }
+
 
     public void put(int hash, int s, int len) {
         int[][] tmp;
@@ -91,7 +95,7 @@ public class Page {
     }
 
     public int selectByTraceId(byte k[], Log[] logs, int start) {
-        int hash = (k[0] + (k[1] << 3) + (k[2] << 6) + (k[3] << 9) + (k[4] << 12)) & 0XFFFF;
+        int hash = hash(k, 0);//k[0] + (k[1] << 3) + (k[2] << 6) + (k[3] << 9) + (k[4] << 12)) & 0XFFFF;
         int link[][] = bucket[hash];
         if (link == null) return 0;
         int p = start;
@@ -142,6 +146,7 @@ public class Page {
         p = 0;
 
         //清除errorPacket中的错误
+        errLen = 0;
     }
 
     @Override

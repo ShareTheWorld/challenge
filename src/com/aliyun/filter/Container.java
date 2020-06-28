@@ -8,8 +8,8 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 30;
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 6;
+    public static final int PER_HANDLE_PAGE_NUM = 2;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
@@ -28,78 +28,99 @@ public class Container {
     }
 
 
-    public static synchronized Page getEmptyPage(int i) {
-        Page page = emptyPages[i % len];
-        while (page == null) {
+    //从empty中取
+    public static Page getEmptyPage(int i) {
+        long l = System.currentTimeMillis();
+        synchronized (emptyPages) {
+            Page page = emptyPages[i % len];
+            while (page == null) {
+                try {
+                    emptyPages.wait();
+                    page = emptyPages[i % len];
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            page.pageIndex = i;
+            System.out.println("get empty page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+            return page;
+        }
+    }
+
+    //放入empty
+    public static void moveHandleToEmpty(int i) {
+        synchronized (emptyPages) {
+            if (i < 0) return;
             try {
-                Container.class.wait();
-                page = emptyPages[i % len];
+                emptyPages[i % len] = handlePages[i % len];
+                handlePages[i % len] = null;
+                emptyPages.notifyAll();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        page.pageIndex = i;
-        return page;
     }
 
-    public static synchronized Page getFullPage(int i) {
-        Page page = fullPages[i % len];
-        while (page == null) {
+    //从full中取
+    public static Page getFullPage(int i) {
+        long l = System.currentTimeMillis();
+        synchronized (fullPages) {
+            Page page = fullPages[i % len];
+            while (page == null) {
+                try {
+                    fullPages.wait();
+                    page = fullPages[i % len];
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("get full page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+            return page;
+        }
+    }
+
+    //放入full
+    public static void moveEmptyToFull(int i) {
+        synchronized (fullPages) {
             try {
-                Container.class.wait();
-                page = fullPages[i % len];
+                fullPages[i % len] = emptyPages[i % len];
+                emptyPages[i % len] = null;
+                fullPages.notifyAll();
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }
-        return page;
     }
 
-    public static synchronized Page getHandlePage(int i) {
-        if (i >= total_page_count || i < 0) return null;
-        Page page = handlePages[i % len];
-        while (page == null) {
+    //从handle中取
+    public static Page getHandlePage(int i) {
+        long l = System.currentTimeMillis();
+        synchronized (handlePages) {
+            if (i >= total_page_count || i < 0) return null;
+            Page page = handlePages[i % len];
+            while (page == null) {
+                try {
+                    handlePages.wait();
+                    page = handlePages[i % len];
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            System.out.println("get handle page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+            return page;
+        }
+    }
+
+    //放入handle
+    public static void moveFullToHandle(int i) {
+        synchronized (handlePages) {
             try {
-                Container.class.wait();
-                page = handlePages[i % len];
+                handlePages[i % len] = fullPages[i % len];
+                fullPages[i % len] = null;
+                handlePages.notifyAll();
             } catch (Exception e) {
                 e.printStackTrace();
             }
-        }
-        return page;
-    }
-
-
-    //empty -> full
-    public static synchronized void moveEmptyToFull(int i) {
-        try {
-            fullPages[i % len] = emptyPages[i % len];
-            emptyPages[i % len] = null;
-            Container.class.notifyAll();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    //full -> handle
-    public static synchronized void moveFullToHandle(int i) {
-        try {
-            handlePages[i % len] = fullPages[i % len];
-            fullPages[i % len] = null;
-            Container.class.notifyAll();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    public static synchronized void moveHandleToEmpty(int i) {
-        try {
-            emptyPages[i % len] = handlePages[i % len];
-            handlePages[i % len] = null;
-            Container.class.notifyAll();
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -163,8 +184,7 @@ public class Container {
         handelOnePacket(start, end, packet);
         System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         for (int i = start; i < end; i++) {
-            if (i - PER_HANDLE_PAGE_NUM >= 0)
-                moveHandleToEmpty(i - PER_HANDLE_PAGE_NUM);
+            moveHandleToEmpty(i - 1);//需要留下一页后面查询
         }
 
     }
@@ -213,6 +233,7 @@ public class Container {
         for (int i = 0; i < logsLen; i++) {
             Log l = logs[i];
             packet.writeWithDataLen(l.d, l.s, l.l);
+            logs[i] = null;
         }
         return packet;
     }
