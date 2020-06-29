@@ -8,8 +8,8 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 20;
-    public static final int PER_HANDLE_PAGE_NUM = 5;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 4;
+    public static final int PER_HANDLE_PAGE_NUM = 1;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
@@ -54,7 +54,7 @@ public class Container {
             try {
                 emptyPages[i % len] = handlePages[i % len];
                 handlePages[i % len] = null;
-                emptyPages.notifyAll();
+                emptyPages.notify();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -85,7 +85,7 @@ public class Container {
             try {
                 fullPages[i % len] = emptyPages[i % len];
                 emptyPages[i % len] = null;
-                fullPages.notifyAll();
+                fullPages.notify();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -117,7 +117,7 @@ public class Container {
             try {
                 handlePages[i % len] = fullPages[i % len];
                 fullPages[i % len] = null;
-                handlePages.notifyAll();
+                handlePages.notify();
             } catch (Exception e) {
                 e.printStackTrace();
             }
