@@ -18,7 +18,7 @@ import static com.aliyun.common.Const.*;
  * 根据traceId查询出错误的日志
  */
 public class Data {
-    public static final int PER_READ_LEN = 32 * 1024 * 1024;//每次读取长度
+    public static final int PER_READ_LEN = 366 * 1024;//每次读取长度
     private static long startTime;
     //用于存放错误的日志
 

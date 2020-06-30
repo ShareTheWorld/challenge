@@ -14,15 +14,11 @@ public class Container {
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
     private static final Page[] handlePages = new Page[len];//处理完索引和错误的页
-    private static final Packet[] errPkts = new Packet[300 / PER_HANDLE_PAGE_NUM];
     //用于存放错误的日志
 
     static {
         for (int i = 0; i < emptyPages.length; i++) {
             emptyPages[i] = new Page();
-        }
-        for (int i = 0; i < errPkts.length; i++) {
-            errPkts[i] = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);
         }
         System.out.println("init memory finish");
     }
@@ -127,43 +123,12 @@ public class Container {
     //处理第i页的数据
     public static void asyncHandleData(int pageIndex) {
         new Thread(() -> {
-            System.out.println("start handle data ,page=" + pageIndex);
             Page page = Container.getFullPage(pageIndex);
             page.createIndexAndFindError();
             moveFullToHandle(pageIndex);//创建完索引，就可以将这个移动到其他地方了
-            System.out.println("end handle data ,page=" + pageIndex);
         }).start();
     }
 
-    /**
-     * 创建索引->找出错误->发送错误
-     */
-    public static void handleData() {
-        int pageIndex = 0;
-        while (pageIndex < total_page_count) {
-            long startTime = System.currentTimeMillis();
-            //创建一个Packet，用于存放错误
-            Packet packet = errPkts[pageIndex / PER_HANDLE_PAGE_NUM];
-            int i = 0;
-            for (; i < PER_HANDLE_PAGE_NUM && pageIndex < total_page_count; i++) {//表示每次处理多少页
-                Page page = Container.getFullPage(pageIndex);
-                page.errPkt = packet;
-                page.createIndexAndFindError();
-                moveFullToHandle(pageIndex);//创建完索引，就可以将这个移动到其他地方了
-                pageIndex++;
-            }
-            //TODO 处理数据
-            filter.sendPacket(packet);//发送错traceIds到engine
-//            asyncHandleErrorPacket(pageIndex - i, pageIndex, packet);
-//            System.out.println("create index and find error ,from [" + (pageIndex - i) + "," + pageIndex + "),time=" + (System.currentTimeMillis() - startTime));
-        }
-//        getHandlePage(pageIndex - 1);
-        System.out.println("-------------create index and find error Thread end------------------");
-    }
-
-    public static void asyncHandleErrorPacket(int start, int end, Packet packet) {
-        new Thread(() -> handleErrorPacket(start, end, packet)).start();
-    }
 
     static Packet errorPacket = new Packet(16, who, Packet.TYPE_MULTI_TRACE_ID);
 

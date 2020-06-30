@@ -45,3 +45,6 @@ else
    /jdk-11.0.7/bin/java -Xms512m  -Xmn1024m -XX:CompileThreshold=2000 -jar /challenge.jar $SERVER_PORT &
 fi
 tail -f /start.sh
+
+
+通过修改JVM参数：-XX:MaxDirectMemorySize=40M，将最大堆外内存设置为40M
