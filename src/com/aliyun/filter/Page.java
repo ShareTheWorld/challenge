@@ -2,7 +2,9 @@ package com.aliyun.filter;
 
 
 import com.aliyun.common.Packet;
+import com.aliyun.common.Utils;
 
+import java.nio.ByteBuffer;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +13,7 @@ public class Page {
 
     public static final int LEN = 32 * 1024 * 1024;//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int pageIndex = 0;//表示这是第几页
-    public byte[] data = new byte[32 * 1024 * 1024 + 1024];//存放数据的缓冲区，太大了会导致缓存页不停的失效
+    public ByteBuffer data = ByteBuffer.allocateDirect(LEN);//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int len = 0;//data中存储数据的长度
     public int bucket[][][] = new int[0X10000][][];//64K 6.5万条  256K
     //每页：4000>不同的traceId，100>重复的traceId的最大数，2表示开始位置和长度  a=4000,b=100,c=2
@@ -30,6 +32,8 @@ public class Page {
 
     public Packet errPkt;//用于存放错误,可以放64个错误
 
+    public native void nativeCreateIndexAndFindError();
+
     //下面是建立索引的字段
     public void createIndexAndFindError() {
         long start_time = System.currentTimeMillis();
@@ -45,31 +49,45 @@ public class Page {
 //        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
-    public int hash(byte[] d, int i) {
+    public int hash(ByteBuffer d, int i) {
+        return (d.get(i) + (d.get(i + 1) << 3) + (d.get(i + 2) << 6) + (d.get(i + 3) << 9) + (d.get(i + 4) << 12)) & 0XFFFF;
+    }
+
+    public int hash(byte d[], int i) {
         return (d[i] + (d[i + 1] << 3) + (d[i + 2] << 6) + (d[i + 3] << 9) + (d[i + 4] << 12)) & 0XFFFF;
     }
 
 
-    public int getLine(byte[] d, int s) {
+    public int getLine(ByteBuffer d, int s) {
         int i = s + SKIP_LEN;
         //开始寻早error=1和!http.status_code=200 和\n
-        while (d[i++] != '\n') {
-            if (d[i] == '=') {
-                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
-                if (d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
-                        && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
-                        && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' && d[i - 5] == '_'
-                        && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
-                        && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
-                } else if (d[i - 5] == 'e' && d[i - 4] == 'r' && d[i - 3] == 'r' && d[i - 2] == 'o'
-                        && d[i - 1] == 'r' && d[i + 1] == '1') {
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
-                }
-            }
-        }
+        int b;
+        d.position(i);
+        while (d.get() != '\n') ;
+        i = d.position();
+
+//        while ((b = d.get()) != '\n') {
+//            if (b == '=') {
+//                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
+//                if (d.get(i - 16) == 'h' && d.get(i - 15) == 't' && d.get(i - 14) == 't' && d.get(i - 13) == 'p'
+//                        && d.get(i - 12) == '.' && d.get(i - 11) == 's' && d.get(i - 10) == 't' && d.get(i - 9) == 'a'
+//                        && d.get(i - 8) == 't' && d.get(i - 7) == 'u' && d.get(i - 6) == 's' && d.get(i - 5) == '_'
+//                        && d.get(i - 4) == 'c' && d.get(i - 3) == 'o' && d.get(i - 2) == 'd' && d.get(i - 1) == 'e'
+//                        && (d.get(i + 1) != '2' || d.get(i + 2) != '0' || d.get(i + 3) != '0')) {
+////                    System.arraycopy(d, s, err, errLen, 16);
+//                    Utils.arraycopy(d, s, err, errLen, 16);
+//                    errLen += 16;
+////                    testCountErrorSet.add(new String(err, errLen - 16, 16));
+//                } else if (d.get(i - 5) == 'e' && d.get(i - 4) == 'r' && d.get(i - 3) == 'r' && d.get(i - 2) == 'o'
+//                        && d.get(i - 1) == 'r' && d.get(i + 1) == '1') {
+////                    System.arraycopy(d, s, err, errLen, 16);
+//                    Utils.arraycopy(d, s, err, errLen, 16);
+//                    errLen += 16;
+////                    testCountErrorSet.add(new String(err, errLen - 16, 16));
+//                }
+//            }
+//            i++;
+//        }
         return i - s;
     }
 
@@ -111,9 +129,9 @@ public class Page {
     /**
      * 从data的s位置开始，判断data是否包含key
      */
-    private static boolean startsWith(byte data[], int s, byte key[]) {
+    private static boolean startsWith(ByteBuffer data, int s, byte key[]) {
         for (int i = 0; i < key.length; i++) {
-            if (data[s + i] != key[i]) return false;
+            if (data.get(s + i) != key[i]) return false;
         }
         return true;
     }
@@ -131,6 +149,7 @@ public class Page {
 
     public void clear() {
         //清除数据
+        data.clear();
         len = 0;
 
         isHandle = false;

@@ -2,11 +2,15 @@ package com.aliyun.filter;
 
 
 import com.aliyun.common.Packet;
+import com.aliyun.common.Utils;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
 import java.net.Proxy;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 import static com.aliyun.common.Const.*;
 
@@ -26,6 +30,7 @@ public class Data {
     private static int tailLen = 0;//尾巴数据的长度
     private static int pageIndex;//表示多少页
 
+
     public static void start() {
         try {
             start0();
@@ -41,14 +46,23 @@ public class Data {
     public static void start0() throws Exception {
         startTime = System.currentTimeMillis();
 
+//        String path = "http://127.0.0.1:" + data_port + (listen_port == 8000 ? "/trace1.data" : "/trace2.data");
+//        System.out.println(path);
+//        URL url = new URL(path);
+//        HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
+//        InputStream in = conn.getInputStream();
+
         String path = "http://127.0.0.1:" + data_port + (listen_port == 8000 ? "/trace1.data" : "/trace2.data");
-        System.out.println(path);
-        URL url = new URL(path);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection(Proxy.NO_PROXY);
-        InputStream in = conn.getInputStream();
+        SocketChannel socketChannel = SocketChannel.open();
+        socketChannel.configureBlocking(true);
+        socketChannel.connect(new InetSocketAddress("localhost", data_port));
+        String request = ("GET " + path + " HTTP/1.0\r\n" +
+                "Host: localhost:" + 0 + "\r\n" +
+                "\r\n");
+        socketChannel.write(ByteBuffer.wrap(request.getBytes()));
 
         int n, len;
-        byte[] data;
+        ByteBuffer data;
         Page page;
         do {
             long l = System.currentTimeMillis();
@@ -59,20 +73,23 @@ public class Data {
 
             //将尾巴复制到缓冲区中
             data = page.data;
-            System.arraycopy(tail, 0, data, 0, tailLen);
-            len = tailLen;
+            data.put(tail, 0, tailLen);
 
             //读取一页数据，
-            while ((n = in.read(data, len, Page.LEN - len)) != -1) {
-                len += n;
-                if (len == Page.LEN) break;
-            }
+            while ((n = socketChannel.read(data)) > 0) ;
+            data.flip();
+
+            len = data.limit();
 
             //反向找到换行符
             for (tailLen = 0; tailLen < 1024; tailLen++) {
-                if (data[len - 1 - tailLen] == '\n') {//
-                    System.arraycopy(data, len - tailLen, tail, 0, tailLen);
-                    break;
+                try {
+                    if (data.get(len - 1 - tailLen) == '\n') {
+                        Utils.arraycopy(data, len - tailLen, tail, 0, tailLen);
+                        break;
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
 

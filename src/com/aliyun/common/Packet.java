@@ -1,5 +1,7 @@
 package com.aliyun.common;
 
+import java.nio.ByteBuffer;
+
 public class Packet {
     public static final byte TYPE_START = 1;
     public static final byte TYPE_TRACE_ID = 2;//traceId
@@ -95,6 +97,22 @@ public class Packet {
         this.bs[this.len++] = (byte) ((len >> 8) & 0XFF);
         this.bs[this.len++] = (byte) (len & 0XFF);
         System.arraycopy(bs, start, this.bs, this.len, len);
+        this.len += len;
+        return this;
+    }
+
+    /**
+     * 只用了两字节
+     *
+     * @param len
+     * @return
+     */
+    public Packet writeWithDataLen(ByteBuffer bs, int start, int len) {
+        this.bs[this.len++] = (byte) ((len >> 8) & 0XFF);
+        this.bs[this.len++] = (byte) (len & 0XFF);
+//        bs.get()
+//        System.arraycopy(bs, start, this.bs, this.len, len);
+        Utils.arraycopy(bs, start, this.bs, this.len, len);
         this.len += len;
         return this;
     }

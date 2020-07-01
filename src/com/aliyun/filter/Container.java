@@ -8,7 +8,7 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 4;
+    private static final int len = 5;
     public static final int PER_HANDLE_PAGE_NUM = 1;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
 
     private static final Page[] emptyPages = new Page[len];//空的页
@@ -38,7 +38,7 @@ public class Container {
                 }
             }
             page.pageIndex = i;
-//            System.out.println("get empty page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+            System.out.println("get empty page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
             return page;
         }
     }
@@ -70,7 +70,7 @@ public class Container {
                     e.printStackTrace();
                 }
             }
-//            System.out.println("get full page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
+            System.out.println("get full page,page=" + i + ", time=" + (System.currentTimeMillis() - l));
             return page;
         }
     }
@@ -222,8 +222,8 @@ public class Container {
     public static int compare(Log l1, Log l2) {
         //因为b1和b2的traceId都是一样的，可以随便指定一个开始位置
         for (int i = 20; i < 35; i++) {//20 时间的前面几位数可以不比较,35 j在超过时间之前就表完了
-            if (l1.d[l1.s + i] == l2.d[l2.s + i]) continue;
-            return l1.d[l1.s + i] - l2.d[l2.s + i];
+            if (l1.d.get(l1.s + i) == l2.d.get(l2.s + i)) continue;
+            return l1.d.get(l1.s + i) - l2.d.get(l2.s + i);
         }
         return 0;
     }

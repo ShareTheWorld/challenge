@@ -15,7 +15,7 @@ sudo docker logs -f -t --tail 1000 41c98741881a
 java -Dserver.port=7000 -DcheckSumPath=./checkSum3.data -jar ./scoring-1.0-SNAPSHOT.jar
 
 
-java -Xms2048m  -Xmn1024m -XX:CompileThreshold=1000 -jar ./challenge.jar 8000
+java -Xms1024m  -Xmn1024m -XX:MaxDirectMemorySize=1024M -XX:CompileThreshold=1000 -jar ./challenge.jar 8000
 
 java -Xms2048m  -Xmn1024m -XX:CompileThreshold=1000 -jar ./challenge.jar 8001
 
