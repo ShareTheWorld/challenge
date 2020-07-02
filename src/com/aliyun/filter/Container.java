@@ -158,12 +158,12 @@ public class Container {
         long startTime = System.currentTimeMillis();
 //        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-        System.out.println("query error 1,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
+//        System.out.println("query error 1,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         //处理其他节点发送过来的traceId
         packet = filter.getRemoteErrorPacket();
 //        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-        System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
+//        System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         for (int i = start; i < end; i++) {
             moveHandleToEmpty(i - 1);//需要留下一页后面查询
         }

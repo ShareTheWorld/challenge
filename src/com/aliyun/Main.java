@@ -37,4 +37,8 @@ public class Main {
         }
         System.out.println("total run time=" + (System.currentTimeMillis() - startTime));
     }
+
+    public static void preRun() {
+
+    }
 }

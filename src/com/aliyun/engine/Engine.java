@@ -230,8 +230,8 @@ public class Engine extends Server {
                 request[162 + i] = (byte) (cl.charAt(i));
             }
 
-            System.out.println(new String(request, 0, requestLen));
-            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
+//            System.out.println(new String(request, 0, requestLen));
+//            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
 //            Thread.sleep(5000);
 //            data_port = 9000;
             Socket socket = new Socket("127.0.0.1", data_port);
