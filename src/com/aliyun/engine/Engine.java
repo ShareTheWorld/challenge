@@ -232,7 +232,7 @@ public class Engine extends Server {
 
 //            System.out.println(new String(request, 0, requestLen));
 //            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
-//            Thread.sleep(5000);
+            Thread.sleep(2000);
 //            data_port = 9000;
             Socket socket = new Socket("127.0.0.1", data_port);
 //            Socket socket = new Socket();

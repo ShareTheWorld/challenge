@@ -41,45 +41,51 @@ public class Page {
             put(hash, i, l);
             i = i + l;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
-//        System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
+        System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
 //        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
     }
 
-    public int hash(byte[] d, int i) {
+    private final static int hash(byte[] d, int i) {
         return (d[i] + (d[i + 1] << 3) + (d[i + 2] << 6) + (d[i + 3] << 9) + (d[i + 4] << 12)) & 0XFFFF;
     }
 
 
-    public int getLine(byte[] d, int s) {
+    private final int getLine(byte[] d, int s) {
         int i = s + SKIP_LEN;
         //开始寻早error=1和!http.status_code=200 和\n
-        while (d[i++] != '\n') {
+        while (d[++i] != '\n') {
             if (d[i] == '=') {
                 //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
                 if (
-//                        d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
-//                        && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
-//                        && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' &&
-                        d[i - 5] == '_'
-//                        && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
-                                && (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0')) {
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
-                } else if (
-                        (d[i - 6] == '&' || d[i - 6] == '|') &&
-//                        d[i - 5] == 'e' &&
-//                                d[i - 4] == 'r' &&
-//                                d[i - 3] == 'r' &&
-//                                d[i - 2] == 'o' &&
-//                                d[i - 1] == 'r' &&
-                                d[i + 1] == '1') {
-//                    System.out.println(new String(d, i - 20, 50));
-                    System.arraycopy(d, s, err, errLen, 16);
-                    errLen += 16;
+                        d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
+                                && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
+                                && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' &&
+                                d[i - 5] == '_'
+                                && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
+                ) {
+                    if (d[i + 1] != '2' /*|| d[i + 2] != '0' || d[i + 3] != '0'*/) {
+                        System.arraycopy(d, s, err, errLen, 16);
+                        errLen += 16;
+                    }
+                    break;
+                } else if (//d[i - 6] == '&' || d[i - 6] == '|'
+                        d[i - 5] == 'e' &&
+                                d[i - 4] == 'r' &&
+                                d[i - 3] == 'r' &&
+                                d[i - 2] == 'o' &&
+                                d[i - 1] == 'r'
+                ) {
+                    if (d[i + 1] == '1') {
+                        System.arraycopy(d, s, err, errLen, 16);
+                        errLen += 16;
+                    }
+                    break;
                 }
             }
         }
-        return i - s;
+        if (d[i] != '\n')
+            while (d[++i] != '\n') ;
+        return i - s + 1;
     }
 
 

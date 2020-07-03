@@ -82,7 +82,7 @@ public class Data {
 
             Container.asyncHandleData(pageIndex);
             pageIndex++;
-//            System.out.println("read data, page=" + pageIndex + ",time=" + (System.currentTimeMillis() - l));
+            System.out.println("read data, page=" + pageIndex + ",time=" + (System.currentTimeMillis() - l));
 
         } while (n != -1);
         total_page_count = pageIndex;
