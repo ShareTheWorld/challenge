@@ -8,12 +8,19 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 22;
-    public static final int PER_HANDLE_PAGE_NUM = 10;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 10;
+    public static final int PER_HANDLE_PAGE_NUM = 1;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+
 
     private static final Page[] emptyPages = new Page[len];//空的页
     private static final Page[] fullPages = new Page[len];//读满了数据的页
     private static final Page[] handlePages = new Page[len];//处理完索引和错误的页
+    public static final Packet errPkts[] = new Packet[1024];//用于存放错误
+    public static int errPktIndex = 0;
+    public static int total_err_pkt = 10000;
+    public static final int per_page[] = new int[1000];//表示每100000行在第几页
+
+
     //用于存放错误的日志
 
     static {
@@ -21,6 +28,31 @@ public class Container {
             emptyPages[i] = new Page();
         }
         System.out.println("init memory finish");
+    }
+
+
+    public static void putErrPkt(Packet packet, int pageIndex) {
+        synchronized (errPkts) {
+            errPkts[errPktIndex] = packet;
+            per_page[errPktIndex] = pageIndex;
+            errPktIndex++;
+            errPkts.notify();
+        }
+    }
+
+    public static Packet getErrPkt(int n) {
+        System.out.println("start get local err pkt");
+        synchronized (errPkts) {
+            if (errPkts[n] == null) {
+                try {
+                    errPkts.wait();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+        System.out.println("end get local err pkt");
+        return errPkts[n];
     }
 
 
@@ -42,6 +74,7 @@ public class Container {
             return page;
         }
     }
+
 
     //放入empty
     public static void moveHandleToEmpty(int i) {
@@ -120,36 +153,44 @@ public class Container {
         }
     }
 
-    //处理第i页的数据
-    public static void asyncHandleData(int pageIndex) {
-        new Thread(() -> {
-            Page page = Container.getFullPage(pageIndex);
+    /**
+     * 创建索引->找出错误->发送错误
+     */
+    public static void handleData() {
+        for (int i = 0; i < total_page_count; i++) {
+            Page page = Container.getFullPage(i);
             page.createIndexAndFindError();
-            moveFullToHandle(pageIndex);//创建完索引，就可以将这个移动到其他地方了
-        }).start();
+            moveFullToHandle(i);//创建完索引，就可以将这个移动到其他地方了
+            if (i == total_page_count - 1) {//表示是最后一页了
+                filter.sendPacket(page.errPkt);
+                putErrPkt(page.errPkt, i);//将最后一页放入进去
+            }
+        }
+        total_err_pkt = errPktIndex;
+        System.out.println("-------------create index and find error Thread end------------------");
+        System.out.println("error count : " + Page.testCountErrorSet.size());
     }
 
 
-    static Packet errorPacket = new Packet(16, who, Packet.TYPE_MULTI_TRACE_ID);
+//    static Packet errorPacket = new Packet(16, who, Packet.TYPE_MULTI_TRACE_ID);
 
     public static void handleErrorPacket() {
 
-        for (int i = 0; i < total_page_count; i += PER_HANDLE_PAGE_NUM) {
-            int j = 0;
-            errorPacket.reset(who, Packet.TYPE_MULTI_TRACE_ID);
-            for (; j < PER_HANDLE_PAGE_NUM; j++) {
-                Page page = getHandlePage(i + j);
-                if (page == null) break;
-                errorPacket.write(page.err, 0, page.errLen);
+        int removeP = 0;
+        for (int i = 0; i < total_err_pkt; i++) {
+            Packet errPkt = getErrPkt(i);
+            int start = i == 0 ? 0 : (per_page[i - 1] == 0 ? 0 : per_page[i - 1] - 1);
+            int end = per_page[i] + 2;
+            handleErrorPacket(start, end, errPkt);
+
+            for (; removeP < start; removeP++) {
+                moveHandleToEmpty(removeP);
             }
-            filter.sendPacket(errorPacket);//发送错traceIds到engine
-            //每两页处理一次，最后一页就不处理了
-            handleErrorPacket(i, i + j, errorPacket);
         }
+
         Packet endPacket = new Packet(1, who, Packet.TYPE_END);
         filter.sendPacket(endPacket);
         System.out.println("-------------query logs Thread end------------------");
-        System.out.println("error count : " + Page.testCountErrorSet.size());
 
     }
 
@@ -164,9 +205,6 @@ public class Container {
 //        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
         System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
-        for (int i = start; i < end; i++) {
-            moveHandleToEmpty(i - 1);//需要留下一页后面查询
-        }
 
     }
 
@@ -184,7 +222,7 @@ public class Container {
 
     static Packet packet = new Packet(64, who, Packet.TYPE_MULTI_LOG);
 
-    static Log[] logs = new Log[300];
+    static Log[] logs = new Log[500];
     static int logsLen = 0;
 
     public static Packet selectByTraceId(int start, int end, byte traceId[]) {
@@ -193,7 +231,7 @@ public class Container {
         //先写入traceId
         packet.write(traceId, 0, traceId.length);
         logsLen = 0;
-        for (int i = start > 0 ? start - 1 : start; i < end + 1; i++) {
+        for (int i = start; i < end; i++) {
             Page page = getHandlePage(i);
             if (page == null) break;
             int len = page.selectByTraceId(traceId, logs, logsLen);

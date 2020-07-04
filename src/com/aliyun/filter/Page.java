@@ -6,8 +6,10 @@ import com.aliyun.common.Packet;
 import java.util.HashSet;
 import java.util.Set;
 
+import static com.aliyun.common.Const.*;
+
 public class Page {
-    private static final int SKIP_LEN = 110;//跳过长度
+    private static final int SKIP_LEN = 70;//跳过长度
 
     public static final int LEN = 32 * 1024 * 1024;//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int pageIndex = 0;//表示这是第几页
@@ -15,20 +17,19 @@ public class Page {
     public int len = 0;//data中存储数据的长度
     public int bucket[][][] = new int[0X10000][][];//64K 6.5万条  256K
     //每页：4000>不同的traceId，100>重复的traceId的最大数，2表示开始位置和长度  a=4000,b=100,c=2
-    public int link[][][] = new int[10000][2][200];//data[i][0][0]存的hash;  data[i][0][0]存的高度, 4.6M
+    public int link[][][] = new int[10000][2][500];//data[i][0][0]存的hash;  data[i][0][0]存的高度, 4.6M
     public int p;//表示当前link取到第几个位置了
 
-    public byte[] err = new byte[2048];//可以存放128个错误了
-    public int errLen = 0;
 
     private boolean isHandle = false;
+    private static int count = 1;//记录总条数
 
     public int testLineNumber = 0;
     public static Set<String> testCountErrorSet = new HashSet<>();
     public static Set<Integer> countHashSet = new HashSet<>();
     public static int logMinLength = 2000;//日志最小长度
 
-    public Packet errPkt;//用于存放错误,可以放64个错误
+    public static Packet errPkt = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);//可以放500个
 
     //下面是建立索引的字段
     public void createIndexAndFindError() {
@@ -39,6 +40,11 @@ public class Page {
             //获取一行数据
             int l = getLine(data, i);
             put(hash, i, l);
+            if (++count % PER_COUNT == 0) {
+                filter.sendPacket(errPkt);
+                Container.putErrPkt(errPkt, pageIndex);
+                errPkt = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);
+            }
             i = i + l;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
         System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
@@ -63,9 +69,9 @@ public class Page {
                                 d[i - 5] == '_'
                                 && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
                 ) {
-                    if (d[i + 1] != '2' /*|| d[i + 2] != '0' || d[i + 3] != '0'*/) {
-                        System.arraycopy(d, s, err, errLen, 16);
-                        errLen += 16;
+                    if (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0') {
+                        testCountErrorSet.add(new String(d, s, 16));
+                        errPkt.write(d, s, 16);
                     }
                     break;
                 } else if (//d[i - 6] == '&' || d[i - 6] == '|'
@@ -76,8 +82,8 @@ public class Page {
                                 d[i - 1] == 'r'
                 ) {
                     if (d[i + 1] == '1') {
-                        System.arraycopy(d, s, err, errLen, 16);
-                        errLen += 16;
+                        testCountErrorSet.add(new String(d, s, 16));
+                        errPkt.write(d, s, 16);
                     }
                     break;
                 }
@@ -159,7 +165,6 @@ public class Page {
         p = 0;
 
         //清除errorPacket中的错误
-        errLen = 0;
     }
 
     @Override

@@ -21,5 +21,7 @@ public class Const {
 
     public static int total_page_count = 10000;//表示总页数，当真正的页数被计算出来过后会赋值给他
 
+    public static final int PER_COUNT = 100000;//代表每次处理多少行
+
 
 }

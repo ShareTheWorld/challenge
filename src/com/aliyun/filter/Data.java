@@ -22,7 +22,7 @@ public class Data {
     private static long startTime;
     //用于存放错误的日志
 
-    private static byte[] tail = new byte[1024];//尾巴数据
+    private static byte[] tail = new byte[20480];//尾巴数据
     private static int tailLen = 0;//尾巴数据的长度
     private static int pageIndex;//表示多少页
 
@@ -69,7 +69,7 @@ public class Data {
             }
 
             //反向找到换行符
-            for (tailLen = 0; tailLen < 1024; tailLen++) {
+            for (tailLen = 0; tailLen < tail.length; tailLen++) {
                 if (data[len - 1 - tailLen] == '\n') {//
                     System.arraycopy(data, len - tailLen, tail, 0, tailLen);
                     break;
@@ -80,7 +80,7 @@ public class Data {
             //计算长度
             page.len = len - tailLen;
 
-            Container.asyncHandleData(pageIndex);
+//            Container.asyncHandleData(pageIndex);
             pageIndex++;
             System.out.println("read data, page=" + pageIndex + ",time=" + (System.currentTimeMillis() - l));
 

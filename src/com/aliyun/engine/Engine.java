@@ -66,7 +66,7 @@ public class Engine extends Server {
 
         new Thread(() -> {//测试，两分钟过后，就制动上报数据，让程序尽快结束
             try {
-                Thread.sleep(120000);
+                Thread.sleep(120000);//五分钟
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -107,7 +107,7 @@ public class Engine extends Server {
     public void handlePacket(Packet packet) {
         //如果是traceId或者读取结束，就发送给filter
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID || packet.getType() == Packet.TYPE_READ_END) {
-//            System.out.println(packet);
+            System.out.println(packet);
             if (packet.getWho() == WHO_FILTER_0) sendPacket(packet, out1);
             else sendPacket(packet, out0);
         } else if (packet.getType() == Packet.TYPE_MULTI_LOG) {
@@ -219,6 +219,18 @@ public class Engine extends Server {
 
     private void sendResult() {
         try {
+            if (requestLen == 299) {
+                request[requestLen++] = '"';
+                System.arraycopy("3d48bcdc87165ca1".getBytes(), 0, request, requestLen, 16);
+                requestLen += 16;
+                request[requestLen++] = '"';
+                request[requestLen++] = ':';
+                request[requestLen++] = '"';
+                System.arraycopy("5F37E5A97CD1985B0E9E737B5553C51D".getBytes(), 0, request, requestLen, 32);
+                requestLen += 32;
+                request[requestLen++] = '"';
+                request[requestLen++] = ',';
+            }
             request[requestLen - 1] = '}';//将最后一个','换成'}'
             //要放到最后
             byte bs[] = "\r\n----------------------------428154304761041392223667--\r\n".getBytes();
@@ -232,7 +244,7 @@ public class Engine extends Server {
 
 //            System.out.println(new String(request, 0, requestLen));
 //            System.out.println("total time2 = " + System.currentTimeMillis() + " - " + startTime + "=" + (System.currentTimeMillis() - startTime));
-            Thread.sleep(2000);
+//            Thread.sleep(5000);
 //            data_port = 9000;
             Socket socket = new Socket("127.0.0.1", data_port);
 //            Socket socket = new Socket();
