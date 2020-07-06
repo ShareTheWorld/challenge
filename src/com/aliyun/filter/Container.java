@@ -8,8 +8,7 @@ import static com.aliyun.common.Const.*;
  * Page容器，主要负责管理Page
  */
 public class Container {
-    private static final int len = 10;
-    public static final int PER_HANDLE_PAGE_NUM = 1;//表示每次处理多少页数据，必须小于读取数据缓存页的长度-1
+    private static final int len = 16;
 
 
     private static final Page[] emptyPages = new Page[len];//空的页
@@ -41,7 +40,6 @@ public class Container {
     }
 
     public static Packet getErrPkt(int n) {
-        System.out.println("start get local err pkt");
         synchronized (errPkts) {
             if (errPkts[n] == null) {
                 try {
@@ -51,14 +49,13 @@ public class Container {
                 }
             }
         }
-        System.out.println("end get local err pkt");
         return errPkts[n];
     }
 
 
     //从empty中取
     public static Page getEmptyPage(int i) {
-        long l = System.currentTimeMillis();
+//        long l = System.currentTimeMillis();
         synchronized (emptyPages) {
             Page page = emptyPages[i % len];
             while (page == null) {
@@ -92,7 +89,7 @@ public class Container {
 
     //从full中取
     public static Page getFullPage(int i) {
-        long l = System.currentTimeMillis();
+//        long l = System.currentTimeMillis();
         synchronized (fullPages) {
             Page page = fullPages[i % len];
             while (page == null) {
@@ -123,7 +120,7 @@ public class Container {
 
     //从handle中取
     public static Page getHandlePage(int i) {
-        long l = System.currentTimeMillis();
+//        long l = System.currentTimeMillis();
         synchronized (handlePages) {
             if (i >= total_page_count || i < 0) return null;
             Page page = handlePages[i % len];
@@ -168,7 +165,7 @@ public class Container {
         }
         total_err_pkt = errPktIndex;
         System.out.println("-------------create index and find error Thread end------------------");
-        System.out.println("error count : " + Page.testCountErrorSet.size());
+//        System.out.println("error count : " + Page.testCountErrorSet.size());
     }
 
 
@@ -199,12 +196,12 @@ public class Container {
         long startTime = System.currentTimeMillis();
 //        System.out.println("select by local trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-        System.out.println("query error 1,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
+//        System.out.println("query error 1,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
         //处理其他节点发送过来的traceId
         packet = filter.getRemoteErrorPacket();
 //        System.out.println("select by remote trace id ,from [" + start + "," + end + ")");
         handelOnePacket(start, end, packet);
-        System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
+//        System.out.println("query error 2,from[" + start + "," + end + ")" + ",time=" + (System.currentTimeMillis() - startTime));
 
     }
 

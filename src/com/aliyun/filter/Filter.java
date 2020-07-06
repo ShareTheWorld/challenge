@@ -37,7 +37,6 @@ public class Filter extends Server {
     }
 
     public synchronized Packet getRemoteErrorPacket() {
-        System.out.println("start get remote err pkt");
         try {
             while (remoteErrorPacket == null) {
                 this.wait();
@@ -45,7 +44,6 @@ public class Filter extends Server {
             Packet packet = remoteErrorPacket;
             remoteErrorPacket = null;
             notifyAll();
-            System.out.println("end get remote err pkt");
             return packet;
         } catch (Exception e) {
             e.printStackTrace();
@@ -72,7 +70,6 @@ public class Filter extends Server {
     @Override
     public void handlePacket(Packet packet) {
         if (packet.getType() == Packet.TYPE_MULTI_TRACE_ID) {//filter只会接收到这类packet
-            System.out.println(packet);
             setRemoteErrorPacket(packet);
         } else if (packet.getType() == Packet.TYPE_START) {
             new Thread(() -> Data.start()).start();

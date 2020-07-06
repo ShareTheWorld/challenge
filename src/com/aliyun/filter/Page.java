@@ -3,13 +3,10 @@ package com.aliyun.filter;
 
 import com.aliyun.common.Packet;
 
-import java.util.HashSet;
-import java.util.Set;
-
 import static com.aliyun.common.Const.*;
 
 public class Page {
-    private static final int SKIP_LEN = 70;//跳过长度
+    private static final int SKIP_LEN = 112;//跳过长度
 
     public static final int LEN = 32 * 1024 * 1024;//存放数据的缓冲区，太大了会导致缓存页不停的失效
     public int pageIndex = 0;//表示这是第几页
@@ -17,81 +14,58 @@ public class Page {
     public int len = 0;//data中存储数据的长度
     public int bucket[][][] = new int[0X10000][][];//64K 6.5万条  256K
     //每页：4000>不同的traceId，100>重复的traceId的最大数，2表示开始位置和长度  a=4000,b=100,c=2
-    public int link[][][] = new int[10000][2][500];//data[i][0][0]存的hash;  data[i][0][0]存的高度, 4.6M
+    public int link[][][] = new int[10000][2][200];//data[i][0][0]存的hash;  data[i][0][0]存的高度, 4.6M
     public int p;//表示当前link取到第几个位置了
 
 
-    private boolean isHandle = false;
-    private static int count = 1;//记录总条数
+    public static int count = 1;//记录总条数
 
-    public int testLineNumber = 0;
-    public static Set<String> testCountErrorSet = new HashSet<>();
-    public static Set<Integer> countHashSet = new HashSet<>();
-    public static int logMinLength = 2000;//日志最小长度
 
-    public static Packet errPkt = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);//可以放500个
+    public static Packet errPkt = new Packet(2, who, Packet.TYPE_MULTI_TRACE_ID);//可以放500个
 
     //下面是建立索引的字段
     public void createIndexAndFindError() {
-        long start_time = System.currentTimeMillis();
         int i = 0;
         do {
-            int hash = hash(data, i);
+            int hash = (data[i] + (data[i + 1] << 3) + (data[i + 2] << 6) + (data[i + 3] << 9) + (data[i + 4] << 12)) & 0XFFFF;
             //获取一行数据
             int l = getLine(data, i);
             put(hash, i, l);
             if (++count % PER_COUNT == 0) {
                 filter.sendPacket(errPkt);
                 Container.putErrPkt(errPkt, pageIndex);
-                errPkt = new Packet(8, who, Packet.TYPE_MULTI_TRACE_ID);
+                errPkt = new Packet(2, who, Packet.TYPE_MULTI_TRACE_ID);
             }
             i = i + l;
         } while (i != len);//如果恰好等于的话，就说明刚好到达最后了,这样getLog就不需要进行边界判断了
-        System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
+//        System.out.println("create index and find error,page=" + pageIndex + ", time=" + (System.currentTimeMillis() - start_time));
 //        System.out.println("pageIndex:" + pageIndex + ",totalLineCount:" + testLineNumber + ",distinctLineCount:" + countErrorSet.size() + ",hashCount:" + countHashSet.size());
-    }
-
-    private final static int hash(byte[] d, int i) {
-        return (d[i] + (d[i + 1] << 3) + (d[i + 2] << 6) + (d[i + 3] << 9) + (d[i + 4] << 12)) & 0XFFFF;
     }
 
 
     private final int getLine(byte[] d, int s) {
-        int i = s + SKIP_LEN;
-        //开始寻早error=1和!http.status_code=200 和\n
-        while (d[++i] != '\n') {
-            if (d[i] == '=') {
-                //TODO 可以更具字符出现频率，做逻辑上的先后顺序  u2.58 p 2.89 d 3.91
-                if (
-                        d[i - 16] == 'h' && d[i - 15] == 't' && d[i - 14] == 't' && d[i - 13] == 'p'
-                                && d[i - 12] == '.' && d[i - 11] == 's' && d[i - 10] == 't' && d[i - 9] == 'a'
-                                && d[i - 8] == 't' && d[i - 7] == 'u' && d[i - 6] == 's' &&
-                                d[i - 5] == '_'
-                                && d[i - 4] == 'c' && d[i - 3] == 'o' && d[i - 2] == 'd' && d[i - 1] == 'e'
-                ) {
-                    if (d[i + 1] != '2' || d[i + 2] != '0' || d[i + 3] != '0') {
-                        testCountErrorSet.add(new String(d, s, 16));
-                        errPkt.write(d, s, 16);
+        try {
+            int i = s + SKIP_LEN;
+            while (d[++i] != '\n') {
+                if (d[i] == '=') {
+                    if (d[i - 5] == '_') {
+                        if (d[i + 1] != '2') errPkt.write(d, s, 16);
+                        break;
+                    } else if (d[i - 6] == '&' || d[i - 6] == '|') {
+                        if (d[i + 1] == '1') errPkt.write(d, s, 16);
+                        break;
                     }
-                    break;
-                } else if (//d[i - 6] == '&' || d[i - 6] == '|'
-                        d[i - 5] == 'e' &&
-                                d[i - 4] == 'r' &&
-                                d[i - 3] == 'r' &&
-                                d[i - 2] == 'o' &&
-                                d[i - 1] == 'r'
-                ) {
-                    if (d[i + 1] == '1') {
-                        testCountErrorSet.add(new String(d, s, 16));
-                        errPkt.write(d, s, 16);
-                    }
-                    break;
                 }
             }
+            if (d[i] != '\n') {
+                if (i - s < 160) i += 85;
+                while (d[++i] != '\n') ;
+            }
+            return i - s + 1;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        if (d[i] != '\n')
-            while (d[++i] != '\n') ;
-        return i - s + 1;
+        return 0;
     }
 
 
@@ -103,18 +77,14 @@ public class Page {
             tmp[0][0] = hash;
             tmp[1][0] = 1;
         }
-        try {
-            //tmp[1][0]存储的是有多长
-            tmp[0][tmp[1][0]] = s;
-            tmp[1][tmp[1][0]] = len;
-            tmp[1][0]++;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        //tmp[1][0]存储的是有多长
+        tmp[0][tmp[1][0]] = s;
+        tmp[1][tmp[1][0]] = len;
+        tmp[1][0]++;
     }
 
     public int selectByTraceId(byte k[], Log[] logs, int start) {
-        int hash = hash(k, 0);//k[0] + (k[1] << 3) + (k[2] << 6) + (k[3] << 9) + (k[4] << 12)) & 0XFFFF;
+        int hash = (k[0] + (k[1] << 3) + (k[2] << 6) + (k[3] << 9) + (k[4] << 12)) & 0XFFFF;
         int link[][] = bucket[hash];
         if (link == null) return 0;
         int p = start;
@@ -153,8 +123,6 @@ public class Page {
     public void clear() {
         //清除数据
         len = 0;
-
-        isHandle = false;
 
         //清除索引
         for (int i = 0; i < p; i++) {

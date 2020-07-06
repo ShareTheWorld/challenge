@@ -10,6 +10,8 @@ import com.aliyun.filter.Page;
 import static com.aliyun.common.Const.*;
 
 import java.util.Arrays;
+import java.util.Random;
+import java.util.RandomAccess;
 
 public class Main {
 
@@ -37,6 +39,5 @@ public class Main {
         }
         System.out.println("total run time=" + (System.currentTimeMillis() - startTime));
     }
-
 
 }
