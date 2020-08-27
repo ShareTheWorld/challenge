@@ -1,6 +1,8 @@
 # challenge
 challenge
 
+赛题链接: [【赛道1】实现一个分布式统计和过滤的链路追踪](https://tianchi.aliyun.com/competition/entrance/231790/information) https://tianchi.aliyun.com/competition/entrance/231790/information
+
 感谢阅读我的代码，整体主要分为两个部分，
 
 1、filter负责获取日志、建立索引、发现错误，
